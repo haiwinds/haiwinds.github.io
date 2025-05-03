@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Tags on Haiwind</title>
+    <link>https://haiwinds.github.io/tags/</link>
+    <description>Recent content in Tags on Haiwind</description>
+    <generator>Hugo</generator>
+    <language>en-US</language>
+    <lastBuildDate>Sun, 09 Apr 2017 10:58:08 -0400</lastBuildDate>
+    <atom:link href="https://haiwinds.github.io/tags/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Scene</title>
+      <link>https://haiwinds.github.io/tags/scene/</link>
+      <pubDate>Sun, 09 Apr 2017 10:58:08 -0400</pubDate>
+      <guid>https://haiwinds.github.io/tags/scene/</guid>
+      <description></description>
+    </item>
+  </channel>
+</rss>
