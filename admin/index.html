@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="description" content="Haiwind 博客管理后台">
+    <title>博客管理 | Haiwind</title>
+    <link rel="stylesheet" href="/site.css">
+    <link rel="stylesheet" href="/admin/admin.css">
+    <script type="module" src="/assets/js/admin.js?v=20261023-4"></script>
+  </head>
+  <body class="admin-page">
+    <header class="admin-header">
+      <a class="admin-brand" href="/">Haiwind <span>博客管理</span></a>
+      <a class="admin-back-link" href="/">返回博客首页</a>
+    </header>
+
+    <main class="admin-main">
+      <section class="admin-intro">
+        <p class="admin-eyebrow">SUPABASE · CONTENT STUDIO</p>
+        <h1>Do my  Blog</h1>
+        <p>今天发生了什么有趣的事情呢🤭，快来告诉我吧😉🤩🤔🫡🤨😐😑😶🫥😶‍🌫️😣🤐😌😛😜😝🤤😒😓😔😕🫤🙃🫠</p>
+      </section>
+
+      <section class="admin-panel admin-login" data-login-panel>
+        <h2>管理员登录</h2>
+        <p>请使用已在 Supabase 中创建并授权的管理员账号。</p>
+        <form data-login-form>
+          <label for="login-email">邮箱</label>
+          <input id="login-email" name="email" type="email" autocomplete="username" required>
+          <label for="login-password">密码</label>
+          <input id="login-password" name="password" type="password" autocomplete="current-password" required>
+          <button class="admin-button admin-button-primary" type="submit">登录管理后台</button>
+          <p class="admin-message" data-login-message role="status" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <section class="admin-dashboard" data-dashboard hidden>
+        <div class="admin-toolbar">
+          <p>已登录：<strong data-admin-email></strong></p>
+          <button class="admin-button admin-button-secondary" type="button" data-logout>退出登录</button>
+        </div>
+        <p class="admin-message" data-page-message role="status" aria-live="polite"></p>
+
+        <section class="admin-panel">
+          <div class="admin-section-heading">
+            <div>
+              <p class="admin-eyebrow">NEW UPDATE</p>
+              <h2>发布一条动态</h2>
+            </div>
+          </div>
+          <form data-publish-form>
+            <label for="post-title">标题 <span>可选</span></label>
+            <input id="post-title" name="title" type="text" maxlength="120" placeholder="例如：最近在研究什么">
+            <label for="post-content">内容</label>
+            <textarea id="post-content" name="content" rows="5" maxlength="10000" required placeholder="写下你的新动态…"></textarea>
+            <input id="selected-image-path" type="hidden" value="">
+            <p class="admin-selected-image" data-selected-image hidden></p>
+            <div class="admin-form-actions">
+              <button class="admin-button admin-button-primary" type="submit">发布动态</button>
+              <p class="admin-message" data-publish-message role="status" aria-live="polite"></p>
+            </div>
+          </form>
+        </section>
+
+        <section class="admin-panel">
+          <div class="admin-section-heading">
+            <div>
+              <p class="admin-eyebrow">IMAGE LIBRARY</p>
+              <h2>图片管理</h2>
+            </div>
+            <p class="admin-hint">支持 JPG、PNG、WebP、GIF，单张最大 10 MB</p>
+          </div>
+          <form class="admin-upload-form" data-upload-form>
+            <label class="admin-file-picker" for="image-files">
+              <span>选择图片</span>
+              <input id="image-files" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple>
+            </label>
+            <button class="admin-button admin-button-primary" type="submit">上传图片</button>
+            <p class="admin-message" data-upload-message role="status" aria-live="polite"></p>
+          </form>
+          <p class="admin-hint">图片链接公开可访问；请勿上传私人或敏感内容。</p>
+          <div class="admin-existing-image">
+            <label for="image-post-select">将选中的图片添加到已有动态</label>
+            <select data-image-post-select id="image-post-select"></select>
+            <button class="admin-button admin-button-secondary" type="button" data-attach-existing-image>添加到动态</button>
+            <p class="admin-message" data-existing-image-selection role="status" aria-live="polite"></p>
+          </div>
+          <div class="admin-image-grid" data-admin-images></div>
+        </section>
+
+        <section class="admin-panel">
+          <div class="admin-section-heading">
+            <div>
+              <p class="admin-eyebrow">POSTS</p>
+              <h2>动态管理</h2>
+            </div>
+            <p class="admin-hint">下架后公开页面不再显示，可随时重新发布。</p>
+          </div>
+          <div class="admin-post-list" data-admin-posts></div>
+        </section>
+      </section>
+    </main>
+
+    <footer class="admin-footer">
+      <span>Haiwind · 博客管理</span>
+      <a href="/">返回公开博客</a>
+    </footer>
+  </body>
+</html>

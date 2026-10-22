@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, follow">
+    <meta name="description" content="Haiwind 博客动态">
+    <title>博客动态 | Haiwind</title>
+    <link rel="stylesheet" href="/site.css">
+    <link rel="stylesheet" href="/admin/admin.css">
+    <script type="module" src="/assets/js/post-detail.js?v=20261023-4"></script>
+  </head>
+  <body class="admin-page">
+    <header class="admin-header">
+      <a class="admin-brand" href="/">Haiwind <span>博客动态</span></a>
+      <a class="admin-back-link" href="/">返回博客首页</a>
+    </header>
+    <main class="post-detail-main">
+      <a class="post-detail-back" href="/">← 返回动态列表</a>
+      <p class="admin-message" data-post-status role="status" aria-live="polite">正在加载动态…</p>
+      <article class="post-detail-card" data-post-content hidden>
+        <time class="live-post-date" data-post-date></time>
+        <h1 data-post-title></h1>
+        <p class="post-detail-body" data-post-body></p>
+        <img class="post-detail-image" data-post-image alt="" hidden>
+        <a class="admin-button admin-button-secondary post-image-download" data-post-download hidden>下载原图</a>
+      </article>
+    </main>
+    <footer class="admin-footer">
+      <span>Haiwind · 博客动态</span>
+      <a href="/admin/">管理博客</a>
+    </footer>
+  </body>
+</html>
