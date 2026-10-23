@@ -12,7 +12,7 @@ import {
   signIn,
   signOut,
   uploadImage,
-} from "./supabase.js?v=20261023-4";
+} from "./supabase.js?v=20261023-7";
 
 const loginPanel = document.querySelector("[data-login-panel]");
 const dashboard = document.querySelector("[data-dashboard]");
@@ -286,30 +286,35 @@ uploadForm.addEventListener("submit", async (event) => {
   submit.disabled = true;
   const failures = [];
   let uploaded = 0;
+  let published = 0;
   for (const file of files) {
     setMessage(uploadMessage, `正在上传 ${file.name}…`);
     try {
       const path = await uploadImage(session, file);
       uploaded += 1;
-      selectedImagePath.value = path;
-      selectedImage.textContent = `已选择：${file.name}（发布动态时会附上这张图片）`;
-      selectedImage.hidden = false;
+      setMessage(uploadMessage, `图片已上传，正在发布 ${file.name}…`);
+      await publishPost(session, {
+        title: "图片分享",
+        content: "",
+        imagePath: path,
+      });
+      published += 1;
     } catch (error) {
-      failures.push(error.message);
+      failures.push(`${file.name}：${error.message}`);
     }
   }
 
   imageInput.value = "";
   try {
-    await refreshImages();
+    await Promise.all([refreshPosts(), refreshImages()]);
   } catch (error) {
-    failures.push(error.message);
+    failures.push(`列表刷新失败：${error.message}`);
   }
   setMessage(
     uploadMessage,
     failures.length
-      ? `成功上传 ${uploaded}/${files.length} 张。${failures.join("；")}`
-      : `已成功上传 ${uploaded} 张图片。`,
+      ? `已上传 ${uploaded}/${files.length} 张，其中 ${published} 张已发布到首页。${failures.join("；")}`
+      : `已成功上传并发布 ${published} 张图片到首页。`,
     failures.length > 0,
   );
   submit.disabled = false;
