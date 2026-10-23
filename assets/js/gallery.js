@@ -2,11 +2,29 @@ import {
   isConfigured,
   listPublicImages,
   publicImageUrl,
-} from "./supabase.js?v=20261023-7";
+} from "./supabase.js?v=20261023-9";
 
 const grid = document.querySelector("[data-gallery-grid]");
 const status = document.querySelector("[data-gallery-status]");
 const count = document.querySelector("[data-gallery-count]");
+const searchForm = document.querySelector("[data-site-search]");
+const searchInput = searchForm?.querySelector("input");
+let imagesLoaded = false;
+
+function filterImages() {
+  if (!imagesLoaded || !searchInput) return;
+  const searchTerm = searchInput.value.trim().toLocaleLowerCase("zh-CN");
+  let visibleImages = 0;
+  for (const card of grid.children) {
+    const matches = card.textContent.toLocaleLowerCase("zh-CN").includes(searchTerm);
+    card.hidden = !matches;
+    if (matches) visibleImages += 1;
+  }
+  status.textContent =
+    searchTerm && visibleImages === 0
+      ? "没有找到匹配的图片。"
+      : "";
+}
 
 function formatDate(value) {
   if (!value) return "";
@@ -55,6 +73,9 @@ function createImageCard(image) {
 
 async function loadGallery() {
   if (!grid || !status) return;
+  if (searchInput) {
+    searchInput.value = new URLSearchParams(location.search).get("q") || "";
+  }
   if (!isConfigured()) {
     status.textContent = "图片浏览功能尚未配置 Supabase。";
     return;
@@ -63,13 +84,23 @@ async function loadGallery() {
   try {
     const images = await listPublicImages();
     grid.replaceChildren(...images.map(createImageCard));
+    imagesLoaded = true;
     count.textContent = `${images.length} 张`;
-    status.textContent = images.length
-      ? ""
-      : "相册还没有图片。上传到博客的图片会显示在这里。";
+    if (images.length) {
+      filterImages();
+    } else {
+      status.textContent = "相册还没有图片。上传到博客的图片会显示在这里。";
+    }
   } catch (error) {
     status.textContent = `暂时无法加载相册：${error.message}。请确认 Supabase 已执行最新的 supabase/schema.sql。`;
   }
 }
+
+searchForm?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  filterImages();
+});
+
+searchInput?.addEventListener("input", filterImages);
 
 loadGallery();

@@ -1,4 +1,4 @@
-import { supabaseConfig } from "./supabase-config.js?v=20261023-8";
+import { supabaseConfig } from "./supabase-config.js?v=20261023-10";
 
 const SESSION_KEY = "haiwind-supabase-session";
 const PUBLIC_POSTS_CACHE_KEY = "haiwind-public-posts";
@@ -235,6 +235,34 @@ export async function listPublicPosts(limit = 6) {
     cacheKey,
     JSON.stringify({ posts, savedAt: Date.now() }),
   );
+  return posts;
+}
+
+export async function searchPublicPosts(searchTerm) {
+  const escapedTerm = searchTerm
+    .replaceAll("\\", "\\\\")
+    .replaceAll('"', '\\"')
+    .replaceAll("*", "\\*");
+  const pattern = `"*${escapedTerm}*"`;
+  const pageSize = 1000;
+  const posts = [];
+  let offset = 0;
+
+  while (true) {
+    const query = new URLSearchParams({
+      select: "id,title,content,image_path,created_at",
+      published: "eq.true",
+      or: `(title.ilike.${pattern},content.ilike.${pattern})`,
+      order: "created_at.desc,id.desc",
+      limit: String(pageSize),
+      offset: String(offset),
+    });
+    const page = await request(`/rest/v1/posts?${query}`);
+    posts.push(...page);
+    if (page.length < pageSize) break;
+    offset += pageSize;
+  }
+
   return posts;
 }
 

@@ -7,51 +7,50 @@
     <meta name="theme-color" content="#0b0b0b">
     <title>Haiwind の Blog</title>
     <link rel="stylesheet" href="/ananke/css/main.min.d05fb5f317fcf33b3a52936399bdf6f47dc776516e1692e412ec7d76f4a5faa2.css">
-    <link rel="stylesheet" href="/site.css">
-    <script type="module" src="/assets/js/public-posts.js?v=20261023-7"></script>
+    <link rel="stylesheet" href="/site.css?v=20261023-9">
+    <script type="module" src="/assets/js/site-shell.js?v=20261023-9"></script>
+    <script type="module" src="/assets/js/public-posts.js?v=20261023-10"></script>
   </head>
   <body class="home-page">
     <div class="home-shell" id="top">
       <aside class="home-sidebar">
         <div class="home-profile">
           <a class="home-avatar" href="/" aria-label="Haiwind 博客首页">
-            <img src="/images/gohugo-default-sample-hero-image.png" alt="">
+            <img data-site-avatar src="/images/gohugo-default-sample-hero-image.png" alt="">
           </a>
           <a class="home-brand" href="/">Haiwind の Blog</a>
-          <p class="home-tagline">用文字记录日常，<br>用镜头收藏世界。</p>
+          <p class="home-tagline">穷极一生，<br>只找到一双为我流泪的眼睛。</p>
         </div>
 
         <nav class="home-nav" aria-label="主导航">
           <a class="is-current" href="#top" aria-current="page">首页</a>
           <a href="/post/">文章</a>
           <a href="/gallery/">相册</a>
-          <a href="/tags/">标签</a>
           <a href="/about/">关于</a>
         </nav>
 
-        <form class="home-search" data-home-search role="search">
-          <label class="visually-hidden" for="home-search-input">搜索动态</label>
-          <input id="home-search-input" type="search" placeholder="搜索文章、照片…" autocomplete="off">
-          <button type="submit" aria-label="搜索">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="10.8" cy="10.8" r="6.3"></circle>
-              <path d="m15.5 15.5 4.2 4.2"></path>
-            </svg>
-          </button>
-        </form>
-
         <div class="home-sidebar-footer">
           <span>© 2026 Haiwind</span>
-          <a href="/admin/">管理博客</a>
+          <a href="/admin/">管理动态</a>
         </div>
       </aside>
 
       <main class="home-main">
         <section class="home-hero" aria-labelledby="home-title">
+          <form class="page-search" data-site-search role="search">
+            <label class="visually-hidden" for="home-search-input">搜索动态</label>
+            <input id="home-search-input" name="q" type="search" placeholder="搜索文章、照片…" autocomplete="off">
+            <button type="submit" aria-label="搜索">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="10.8" cy="10.8" r="6.3"></circle>
+                <path d="m15.5 15.5 4.2 4.2"></path>
+              </svg>
+            </button>
+          </form>
           <div class="home-hero-content">
             <p class="home-eyebrow">BLOG / PHOTOS</p>
             <h1 id="home-title">记录生活与光影</h1>
-            <p class="home-lead">用文字写日常，用镜头收藏世界。<br>这里是我思考、旅行与按下快门的角落。</p>
+            <p class="home-lead">以后会是什么样，谁知道呢。<br>还能找回曾经的自己吗</p>
             <div class="home-hero-actions">
               <a class="home-button home-button-light" href="/post/">浏览文章</a>
               <a class="home-button home-button-outline" href="/gallery/">查看相册</a>
