@@ -13,10 +13,13 @@
   <body class="admin-page">
     <header class="admin-header">
       <a class="admin-brand" href="/">Haiwind <span>博客动态</span></a>
-      <a class="admin-back-link" href="/">返回博客首页</a>
+      <nav class="post-detail-nav" aria-label="页面导航">
+        <a class="admin-back-link" href="/post/">返回动态列表</a>
+        <a class="post-detail-admin-link" href="/admin/">管理博客</a>
+      </nav>
     </header>
     <main class="post-detail-main">
-      <a class="post-detail-back" href="/">← 返回动态列表</a>
+      <a class="post-detail-back" href="/post/">← 返回动态列表</a>
       <p class="admin-message" data-post-status role="status" aria-live="polite">正在加载动态…</p>
       <article class="post-detail-card" data-post-content hidden>
         <time class="live-post-date" data-post-date></time>
@@ -26,9 +29,5 @@
         <a class="admin-button admin-button-secondary post-image-download" data-post-download hidden>下载原图</a>
       </article>
     </main>
-    <footer class="admin-footer">
-      <span>Haiwind · 博客动态</span>
-      <a href="/admin/">管理博客</a>
-    </footer>
   </body>
 </html>

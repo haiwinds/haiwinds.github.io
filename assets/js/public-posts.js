@@ -2,7 +2,7 @@ import {
   isConfigured,
   listPublicPosts,
   publicImageUrl,
-} from "./supabase.js?v=20261023-7";
+} from "./supabase.js?v=20261023-8";
 
 const feed = document.querySelector("[data-live-feed]");
 const status = document.querySelector("[data-live-feed-status]");
@@ -82,7 +82,11 @@ async function loadFeed() {
     feed.replaceChildren(...posts.map(renderPost));
     postsLoaded = true;
     if (posts.length) {
-      filterFeed();
+      if (searchInput) {
+        filterFeed();
+      } else {
+        status.textContent = "";
+      }
     } else {
       status.textContent = "还没有发布动态。";
     }
