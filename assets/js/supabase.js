@@ -1,8 +1,9 @@
-import { supabaseConfig } from "./supabase-config.js?v=20261023-4";
+import { supabaseConfig } from "./supabase-config.js?v=20261023-7";
 
 const SESSION_KEY = "haiwind-supabase-session";
 const PUBLIC_POSTS_CACHE_KEY = "haiwind-public-posts";
 const PUBLIC_POSTS_CACHE_MS = 30000;
+const PUBLIC_IMAGES_CACHE_KEY = "haiwind-public-images";
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = new Set([
   "image/jpeg",
@@ -237,6 +238,78 @@ export async function listPublicPosts(limit = 6) {
   return posts;
 }
 
+export async function listPublicImages() {
+  const cachedValue = sessionStorage.getItem(PUBLIC_IMAGES_CACHE_KEY);
+  if (cachedValue) {
+    try {
+      const cached = JSON.parse(cachedValue);
+      if (
+        Array.isArray(cached.images) &&
+        Date.now() - cached.savedAt < PUBLIC_POSTS_CACHE_MS
+      ) {
+        return cached.images;
+      }
+    } catch {
+      sessionStorage.removeItem(PUBLIC_IMAGES_CACHE_KEY);
+    }
+  }
+
+  const images = await listStorageImages("");
+  images.sort((left, right) =>
+    (right.created_at || "").localeCompare(left.created_at || ""),
+  );
+  sessionStorage.setItem(
+    PUBLIC_IMAGES_CACHE_KEY,
+    JSON.stringify({ images, savedAt: Date.now() }),
+  );
+  return images;
+}
+
+async function listStorageImages(prefix, token, depth = 0) {
+  if (depth > 8) {
+    throw new Error("图片目录层级异常，无法读取图库。");
+  }
+
+  const pageSize = 100;
+  const entries = [];
+  let offset = 0;
+  while (true) {
+    const page = await request("/storage/v1/object/list/blog-images", {
+      method: "POST",
+      body: {
+        prefix,
+        limit: pageSize,
+        offset,
+        sortBy: { column: "created_at", order: "desc" },
+      },
+      token,
+    });
+    entries.push(...page);
+    if (page.length < pageSize) break;
+    offset += pageSize;
+  }
+
+  const files = entries.filter((entry) => entry.id);
+  const folders = entries.filter((entry) => !entry.id && entry.name);
+  const nestedImages = await Promise.all(
+    folders.map((folder) =>
+      listStorageImages(
+        prefix ? `${prefix}/${folder.name}` : folder.name,
+        token,
+        depth + 1,
+      ),
+    ),
+  );
+  const images = [...nestedImages.flat()];
+  for (const entry of files) {
+    images.push({
+      ...entry,
+      path: prefix ? `${prefix}/${entry.name}` : entry.name,
+    });
+  }
+  return images;
+}
+
 export async function getPublicPost(postId) {
   const query = new URLSearchParams({
     select: "id,title,content,image_path,created_at",
@@ -282,12 +355,18 @@ export async function setPostImage(session, postId, imagePath) {
 }
 
 export async function publishPost(session, { title, content, imagePath }) {
+  const postTitle = title.trim() || (imagePath ? "图片分享" : "");
+  const postContent = content.trim() || (imagePath ? "分享了一张图片。" : "");
+  if (!postContent) {
+    throw new Error("请填写动态内容，或先选择一张图片。");
+  }
+
   const result = await request("/rest/v1/posts", {
     method: "POST",
     body: [
       {
-        title,
-        content,
+        title: postTitle,
+        content: postContent,
         image_path: imagePath || null,
         created_by: session.user.id,
       },
@@ -300,7 +379,12 @@ export async function publishPost(session, { title, content, imagePath }) {
 }
 
 function clearPublicPostsCache() {
-  sessionStorage.removeItem(`${PUBLIC_POSTS_CACHE_KEY}-6`);
+  for (let index = sessionStorage.length - 1; index >= 0; index -= 1) {
+    const key = sessionStorage.key(index);
+    if (key?.startsWith(PUBLIC_POSTS_CACHE_KEY)) {
+      sessionStorage.removeItem(key);
+    }
+  }
 }
 
 export async function uploadImage(session, file) {
@@ -326,38 +410,10 @@ export async function uploadImage(session, file) {
     token: session.access_token,
     headers: { "Content-Type": file.type, "x-upsert": "false" },
   });
+  sessionStorage.removeItem(PUBLIC_IMAGES_CACHE_KEY);
   return path;
 }
 
 export async function listAdminImages(session) {
-  async function listFolder(prefix, depth = 0) {
-    if (depth > 8) {
-      throw new Error("图片目录层级异常，无法读取图库。");
-    }
-
-    const entries = await request("/storage/v1/object/list/blog-images", {
-      method: "POST",
-      body: {
-        prefix,
-        limit: 100,
-        offset: 0,
-        sortBy: { column: "created_at", order: "desc" },
-      },
-      token: session.access_token,
-    });
-
-    const files = entries.filter((entry) => entry.id);
-    const folders = entries.filter((entry) => !entry.id && entry.name);
-    const nestedImages = await Promise.all(
-      folders.map((folder) => listFolder(`${prefix}/${folder.name}`, depth + 1)),
-    );
-    const images = [...nestedImages.flat()];
-    for (const entry of files) {
-      const path = `${prefix}/${entry.name}`;
-      images.push({ ...entry, path });
-    }
-    return images;
-  }
-
-  return listFolder(session.user.id);
+  return listStorageImages(session.user.id, session.access_token);
 }
