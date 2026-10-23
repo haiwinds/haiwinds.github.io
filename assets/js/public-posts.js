@@ -2,27 +2,42 @@ import {
   isConfigured,
   listPublicPosts,
   publicImageUrl,
-} from "./supabase.js?v=20261023-8";
+  searchPublicPosts,
+} from "./supabase.js?v=20261023-10";
 
 const feed = document.querySelector("[data-live-feed]");
 const status = document.querySelector("[data-live-feed-status]");
-const searchForm = document.querySelector("[data-home-search]");
+const searchForm = document.querySelector("[data-site-search]");
 const searchInput = searchForm?.querySelector("input");
 let postsLoaded = false;
+let defaultPosts = [];
+let searchRequest = 0;
+let searchTimeout;
 
-function filterFeed() {
-  if (!postsLoaded || !searchInput) return;
+function renderFeed(posts) {
+  feed.replaceChildren(...posts.map(renderPost));
+}
+
+async function searchFeed() {
+  if (!postsLoaded || !searchInput || !feed || !status) return;
   const searchTerm = searchInput.value.trim().toLocaleLowerCase("zh-CN");
-  let visiblePosts = 0;
-  for (const card of feed.children) {
-    const matches = card.textContent.toLocaleLowerCase("zh-CN").includes(searchTerm);
-    card.hidden = !matches;
-    if (matches) visiblePosts += 1;
+  const requestId = ++searchRequest;
+  if (!searchTerm) {
+    renderFeed(defaultPosts);
+    status.textContent = defaultPosts.length ? "" : "还没有发布动态。";
+    return;
   }
-  status.textContent =
-    searchTerm && visiblePosts === 0
-      ? "没有找到匹配的动态。"
-      : "";
+
+  status.textContent = "正在搜索已发布动态…";
+  try {
+    const posts = await searchPublicPosts(searchTerm);
+    if (requestId !== searchRequest) return;
+    renderFeed(posts);
+    status.textContent = posts.length ? "" : "没有找到匹配的动态。";
+  } catch (error) {
+    if (requestId !== searchRequest) return;
+    status.textContent = `搜索动态失败：${error.message}`;
+  }
 }
 
 function renderPost(post) {
@@ -68,6 +83,9 @@ function renderPost(post) {
 
 async function loadFeed() {
   if (!feed || !status) return;
+  if (searchInput) {
+    searchInput.value = new URLSearchParams(location.search).get("q") || "";
+  }
   if (!isConfigured()) {
     status.textContent = "动态发布功能尚未配置 Supabase。";
     return;
@@ -79,14 +97,13 @@ async function loadFeed() {
     const posts = await listPublicPosts(
       Number.isInteger(requestedLimit) && requestedLimit > 0 ? requestedLimit : 6,
     );
-    feed.replaceChildren(...posts.map(renderPost));
+    defaultPosts = posts;
+    renderFeed(posts);
     postsLoaded = true;
-    if (posts.length) {
-      if (searchInput) {
-        filterFeed();
-      } else {
-        status.textContent = "";
-      }
+    if (searchInput?.value.trim()) {
+      searchFeed();
+    } else if (posts.length) {
+      status.textContent = "";
     } else {
       status.textContent = "还没有发布动态。";
     }
@@ -96,11 +113,17 @@ async function loadFeed() {
 }
 
 searchForm?.addEventListener("submit", (event) => {
+  if (!feed) return;
   event.preventDefault();
-  filterFeed();
+  clearTimeout(searchTimeout);
+  searchFeed();
   document.querySelector("#latest-updates")?.scrollIntoView({ behavior: "smooth" });
 });
 
-searchInput?.addEventListener("input", filterFeed);
+searchInput?.addEventListener("input", () => {
+  searchRequest += 1;
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(searchFeed, 250);
+});
 
 loadFeed();

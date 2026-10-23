@@ -7,15 +7,16 @@
     <meta name="theme-color" content="#0b0b0b">
     <title>相册 | Haiwind</title>
     <link rel="stylesheet" href="/ananke/css/main.min.d05fb5f317fcf33b3a52936399bdf6f47dc776516e1692e412ec7d76f4a5faa2.css">
-    <link rel="stylesheet" href="/site.css">
-    <script type="module" src="/assets/js/gallery.js?v=20261023-7"></script>
+    <link rel="stylesheet" href="/site.css?v=20261023-9">
+    <script type="module" src="/assets/js/site-shell.js?v=20261023-9"></script>
+    <script type="module" src="/assets/js/gallery.js?v=20261023-9"></script>
   </head>
   <body class="home-page">
     <div class="home-shell">
       <aside class="home-sidebar">
         <div class="home-profile">
           <a class="home-avatar" href="/" aria-label="Haiwind 博客首页">
-            <img src="/images/gohugo-default-sample-hero-image.png" alt="">
+            <img data-site-avatar src="/images/gohugo-default-sample-hero-image.png" alt="">
           </a>
           <a class="home-brand" href="/">Haiwind の Blog</a>
           <p class="home-tagline">用文字记录日常，<br>用镜头收藏世界。</p>
@@ -25,7 +26,6 @@
           <a href="/">首页</a>
           <a href="/post/">文章</a>
           <a class="is-current" href="/gallery/" aria-current="page">相册</a>
-          <a href="/tags/">标签</a>
           <a href="/about/">关于</a>
         </nav>
 
@@ -37,6 +37,16 @@
 
       <main class="gallery-main">
         <header class="gallery-heading">
+          <form class="page-search" data-site-search role="search">
+            <label class="visually-hidden" for="gallery-search-input">搜索相册图片</label>
+            <input id="gallery-search-input" name="q" type="search" placeholder="搜索文章、照片…" autocomplete="off">
+            <button type="submit" aria-label="搜索">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="10.8" cy="10.8" r="6.3"></circle>
+                <path d="m15.5 15.5 4.2 4.2"></path>
+              </svg>
+            </button>
+          </form>
           <p class="home-eyebrow">BLOG / PHOTOS</p>
           <h1>相册</h1>
           <p>所有上传到博客的图片，都收录在这里。</p>

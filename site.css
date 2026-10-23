@@ -503,79 +503,6 @@ footer a {
   width: 1px;
 }
 
-.home-search {
-  align-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.17);
-  border-radius: 7px;
-  display: flex;
-  margin-top: 1rem;
-  min-height: 42px;
-  transition: border-color 160ms ease, background-color 160ms ease;
-  width: 100%;
-}
-
-.home-search:focus-within {
-  background: rgba(255, 255, 255, 0.035);
-  border-color: rgba(255, 255, 255, 0.42);
-}
-
-.home-search input {
-  background: transparent;
-  border: 0;
-  box-shadow: none;
-  color: #eee;
-  flex: 1;
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-  font-size: 0.82rem;
-  min-width: 0;
-  outline: 0;
-  padding: 0.65rem 0 0.65rem 0.75rem;
-}
-
-.home-search input::placeholder {
-  color: #777;
-  opacity: 1;
-}
-
-.home-search input:focus-visible {
-  outline: 0;
-}
-
-.home-search input::-webkit-search-cancel-button {
-  filter: grayscale(1);
-}
-
-.home-search button {
-  align-items: center;
-  appearance: none;
-  background: transparent;
-  border: 0;
-  color: #888;
-  cursor: pointer;
-  display: inline-flex;
-  justify-content: center;
-  padding: 0.6rem 0.7rem;
-}
-
-.home-search button:hover,
-.home-search button:focus-visible {
-  color: #fff;
-}
-
-.home-search button:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.7);
-  outline-offset: -4px;
-}
-
-.home-search svg {
-  fill: none;
-  height: 17px;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-width: 1.7;
-  width: 17px;
-}
-
 .home-sidebar-footer {
   border-top: 1px solid rgba(255, 255, 255, 0.12);
   color: #858585;
@@ -615,6 +542,80 @@ footer a {
   min-height: min(100vh, 900px);
   padding: clamp(2.5rem, 5vw, 5rem);
   position: relative;
+}
+
+.page-search {
+  align-items: center;
+  background: rgba(8, 9, 10, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 999px;
+  display: flex;
+  min-height: 42px;
+  position: absolute;
+  right: clamp(1.2rem, 4vw, 3rem);
+  top: 1.4rem;
+  transition: background-color 160ms ease, border-color 160ms ease;
+  width: min(270px, calc(100% - 2.5rem));
+  z-index: 1;
+}
+
+.page-search:focus-within {
+  background: rgba(8, 9, 10, 0.42);
+  border-color: rgba(255, 255, 255, 0.72);
+}
+
+.home-page .page-search input {
+  background: transparent;
+  border: 0;
+  border-radius: inherit;
+  box-shadow: none;
+  color: #fff;
+  flex: 1;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.82rem;
+  min-width: 0;
+  outline: 0;
+  padding: 0.6rem 0 0.6rem 1rem;
+}
+
+.page-search input::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+  opacity: 1;
+}
+
+.home-page .page-search input:focus-visible {
+  outline: 0;
+}
+
+.page-search button {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: rgba(255, 255, 255, 0.78);
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: center;
+  padding: 0.6rem 0.85rem;
+}
+
+.page-search button:hover,
+.page-search button:focus-visible {
+  color: #fff;
+}
+
+.page-search button:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.7);
+  outline-offset: -4px;
+}
+
+.page-search svg {
+  fill: none;
+  height: 17px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 1.7;
+  width: 17px;
 }
 
 .home-hero-content {
@@ -879,13 +880,9 @@ footer a {
     white-space: nowrap;
   }
 
-  .home-search {
-    margin-top: 0.55rem;
-  }
-
   .home-hero {
     min-height: min(78vh, 720px);
-    padding: 2.2rem 1.35rem;
+    padding: 5rem 1.35rem 2.2rem;
   }
 
   .home-hero h1 {
@@ -936,6 +933,7 @@ footer a {
   color: #fff;
   min-height: 280px;
   padding: clamp(2rem, 6vw, 5rem);
+  position: relative;
 }
 
 .gallery-heading .home-eyebrow {
@@ -966,6 +964,38 @@ footer a {
 
 .gallery-heading > a:hover {
   color: #ddd;
+}
+
+.about-content {
+  background: #fff;
+  border: 1px solid rgba(20, 20, 20, 0.08);
+  border-radius: 6px;
+  color: #585858;
+  margin: clamp(2rem, 5vw, 4rem);
+  max-width: 850px;
+  padding: clamp(1.5rem, 4vw, 3rem);
+}
+
+.about-content .live-feed-eyebrow {
+  color: #777;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0.14em;
+}
+
+.about-content h2 {
+  color: #171717;
+  font-family: "Noto Serif SC", "Songti SC", Georgia, serif;
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  letter-spacing: -0.04em;
+  margin: 0.3rem 0 1rem;
+}
+
+.about-content p {
+  line-height: 1.9;
+}
+
+.about-content strong {
+  color: #242424;
 }
 
 .gallery-section {
@@ -1071,7 +1101,18 @@ footer a {
 @media (max-width: 760px) {
   .gallery-heading {
     min-height: 235px;
-    padding: 2rem 1.35rem;
+    padding: 5rem 1.35rem 2rem;
+  }
+
+  .page-search {
+    right: 1.2rem;
+    top: 1rem;
+    width: min(250px, calc(100% - 2.4rem));
+  }
+
+  .about-content {
+    margin: 2rem 1.2rem;
+    padding: 1.5rem;
   }
 
   .gallery-section {
