@@ -37,6 +37,97 @@ create index if not exists posts_published_created_at_idx
   on public.posts (created_at desc)
   where published;
 
+create table if not exists public.post_images (
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid not null references public.posts (id) on delete cascade,
+  image_path text not null,
+  position smallint not null default 0 check (position between 0 and 9),
+  created_at timestamptz not null default now(),
+  unique (post_id, image_path)
+);
+
+create index if not exists post_images_post_position_idx
+  on public.post_images (post_id, position);
+
+insert into public.post_images (post_id, image_path, position)
+select id, image_path, 0
+from public.posts
+where image_path is not null
+on conflict (post_id, image_path) do nothing;
+
+create or replace function public.enforce_post_image_limit()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  image_count integer;
+begin
+  perform 1
+  from public.posts
+  where id = new.post_id
+  for update;
+
+  if tg_op = 'UPDATE' then
+    if old.post_id = new.post_id then
+      return new;
+    end if;
+  end if;
+
+  select count(*)
+  into image_count
+  from public.post_images
+  where post_id = new.post_id;
+
+  if image_count >= 10 then
+    raise exception 'A post can contain no more than 10 images.'
+      using errcode = 'check_violation';
+  end if;
+
+  return new;
+end;
+$$;
+
+revoke all on function public.enforce_post_image_limit() from public, anon, authenticated;
+
+drop trigger if exists enforce_post_image_limit on public.post_images;
+create trigger enforce_post_image_limit
+  before insert or update of post_id on public.post_images
+  for each row execute function public.enforce_post_image_limit();
+
+alter table public.post_images enable row level security;
+revoke all on public.post_images from public, anon, authenticated;
+grant select on public.post_images to anon, authenticated;
+grant insert (post_id, image_path, position) on public.post_images to authenticated;
+
+drop policy if exists "Anyone can read images from published posts" on public.post_images;
+create policy "Anyone can read images from published posts"
+  on public.post_images for select
+  to anon, authenticated
+  using (
+    exists (
+      select 1
+      from public.posts
+      where id = post_id
+        and (published or (select public.is_blog_admin()))
+    )
+  );
+
+drop policy if exists "Admins can add images to their posts" on public.post_images;
+create policy "Admins can add images to their posts"
+  on public.post_images for insert
+  to authenticated
+  with check (
+    (select public.is_blog_admin())
+    and exists (
+      select 1
+      from public.posts
+      where id = post_id
+        and created_by = (select auth.uid())
+    )
+  );
+
 alter table public.posts enable row level security;
 revoke all on public.posts from public, anon, authenticated;
 grant select on public.posts to anon, authenticated;

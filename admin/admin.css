@@ -139,6 +139,12 @@
   resize: vertical;
 }
 
+.admin-page input[type="file"] {
+  color: var(--admin-muted);
+  font: inherit;
+  max-width: min(100%, 320px);
+}
+
 .admin-page input:focus,
 .admin-page textarea:focus {
   border-color: #8aa6ff;
@@ -281,6 +287,11 @@
   padding: 0 1rem;
 }
 
+.admin-post-file-picker {
+  margin-top: 1rem !important;
+  width: fit-content;
+}
+
 .admin-file-picker input {
   font: inherit;
   margin-left: 0.75rem;
@@ -324,13 +335,19 @@
   flex-basis: 100%;
 }
 
+.admin-post-images {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 150px));
+  margin-top: 0.75rem;
+}
+
 .admin-post-image-preview {
   border-radius: 9px;
   display: block;
-  margin-top: 0.75rem;
-  max-height: 180px;
-  max-width: min(100%, 320px);
+  aspect-ratio: 4 / 3;
   object-fit: cover;
+  width: 100%;
 }
 
 .admin-image-card {

@@ -8,11 +8,11 @@ import {
   publicImageUrl,
   publishPost,
   setPostPublished,
-  setPostImage,
+  attachPostImage,
   signIn,
   signOut,
   uploadImage,
-} from "./supabase.js?v=20261023-7";
+} from "./supabase.js?v=20261023-11";
 
 const loginPanel = document.querySelector("[data-login-panel]");
 const dashboard = document.querySelector("[data-dashboard]");
@@ -27,8 +27,8 @@ const adminEmail = document.querySelector("[data-admin-email]");
 const postList = document.querySelector("[data-admin-posts]");
 const imageList = document.querySelector("[data-admin-images]");
 const imageInput = document.querySelector("#image-files");
+const publishImageInput = document.querySelector("#post-image-files");
 const selectedImage = document.querySelector("[data-selected-image]");
-const selectedImagePath = document.querySelector("#selected-image-path");
 const existingPostSelect = document.querySelector("[data-image-post-select]");
 const existingImageSelection = document.querySelector("[data-existing-image-selection]");
 const attachExistingImageButton = document.querySelector("[data-attach-existing-image]");
@@ -36,10 +36,18 @@ const logoutButton = document.querySelector("[data-logout]");
 
 let session = null;
 let pendingExistingImagePath = "";
+let selectedNewImagePaths = [];
 
 function setMessage(element, message, isError = false) {
   element.textContent = message;
   element.classList.toggle("is-error", isError);
+}
+
+function updateSelectedImageMessage() {
+  const localCount = publishImageInput.files.length;
+  const total = localCount + selectedNewImagePaths.length;
+  selectedImage.textContent = `${selectedNewImagePaths.length} 张图库图片、${localCount} 张本地图片（共 ${total}/10 张）。`;
+  selectedImage.hidden = total === 0;
 }
 
 function formatDate(value) {
@@ -62,13 +70,18 @@ function createAdminPost(post) {
   const content = document.createElement("p");
   content.textContent = post.content;
   details.append(title, date, content);
-  if (post.image_path) {
-    const image = document.createElement("img");
-    image.className = "admin-post-image-preview";
-    image.src = publicImageUrl(post.image_path);
-    image.alt = post.title ? `${post.title} 配图` : "动态图片";
-    image.loading = "lazy";
-    details.append(image);
+  if (post.images.length) {
+    const previews = document.createElement("div");
+    previews.className = "admin-post-images";
+    for (const [index, path] of post.images.entries()) {
+      const image = document.createElement("img");
+      image.className = "admin-post-image-preview";
+      image.src = publicImageUrl(path);
+      image.alt = `${post.title || "动态"} 配图 ${index + 1}`;
+      image.loading = "lazy";
+      previews.append(image);
+    }
+    details.append(previews);
   }
 
   const actions = document.createElement("div");
@@ -121,9 +134,13 @@ function createImageCard(object) {
   attach.className = "admin-button admin-button-secondary";
   attach.textContent = "用于新动态";
   attach.addEventListener("click", () => {
-    selectedImagePath.value = path;
-    selectedImage.textContent = `已选择：${object.name}`;
-    selectedImage.hidden = false;
+    if (selectedNewImagePaths.includes(path)) return;
+    if (selectedNewImagePaths.length + publishImageInput.files.length >= 10) {
+      setMessage(publishMessage, "每条动态最多添加 10 张图片。", true);
+      return;
+    }
+    selectedNewImagePaths.push(path);
+    updateSelectedImageMessage();
   });
   const attachExisting = document.createElement("button");
   attachExisting.type = "button";
@@ -162,15 +179,15 @@ async function refreshPosts() {
 
 attachExistingImageButton.addEventListener("click", async () => {
   if (!pendingExistingImagePath || !existingPostSelect.value) {
-    setMessage(existingImageSelection, "请先选择一张图片和要配图的动态。", true);
+    setMessage(existingImageSelection, "请先选择一张图片和要添加图片的动态。", true);
     return;
   }
 
   attachExistingImageButton.disabled = true;
-  setMessage(existingImageSelection, "正在更新动态配图…");
+  setMessage(existingImageSelection, "正在添加图片到动态…");
   try {
-    await setPostImage(session, existingPostSelect.value, pendingExistingImagePath);
-    setMessage(existingImageSelection, "配图已添加到动态。");
+    await attachPostImage(session, existingPostSelect.value, pendingExistingImagePath);
+    setMessage(existingImageSelection, "图片已添加到动态相册。");
     await refreshPosts();
   } catch (error) {
     setMessage(existingImageSelection, error.message, true);
@@ -255,20 +272,44 @@ publishForm.addEventListener("submit", async (event) => {
   const submit = publishForm.querySelector('button[type="submit"]');
   submit.disabled = true;
   setMessage(publishMessage, "正在发布…");
+  const uploadedPaths = [];
   try {
     const data = new FormData(publishForm);
+    const files = [...publishImageInput.files];
+    if (files.length + selectedNewImagePaths.length > 10) {
+      throw new Error("每条动态最多添加 10 张图片。");
+    }
+    const imagePaths = [...selectedNewImagePaths];
+    for (const [index, file] of files.entries()) {
+      setMessage(publishMessage, `正在上传图片（${index + 1}/${files.length}）…`);
+      const path = await uploadImage(session, file);
+      imagePaths.push(path);
+      uploadedPaths.push(path);
+    }
+    setMessage(publishMessage, "图片上传完成，正在保存动态…");
     await publishPost(session, {
       title: String(data.get("title")).trim(),
       content: String(data.get("content")).trim(),
-      imagePath: selectedImagePath.value,
+      imagePaths,
     });
     publishForm.reset();
-    selectedImagePath.value = "";
-    selectedImage.hidden = true;
+    selectedNewImagePaths = [];
+    updateSelectedImageMessage();
     setMessage(publishMessage, "已发布，公开页面会自动显示这条动态。");
-    await refreshPosts();
+    try {
+      await refreshPosts();
+    } catch (error) {
+      setMessage(publishMessage, `动态已发布，但列表刷新失败：${error.message}`, true);
+    }
   } catch (error) {
-    setMessage(publishMessage, error.message, true);
+    selectedNewImagePaths = [...new Set([...selectedNewImagePaths, ...uploadedPaths])];
+    if (uploadedPaths.length) publishImageInput.value = "";
+    updateSelectedImageMessage();
+    setMessage(
+      publishMessage,
+      `${error.message}${uploadedPaths.length ? ` 已上传的 ${uploadedPaths.length} 张图片已保留在图库选择中，可重新提交。` : ""}`,
+      true,
+    );
   } finally {
     submit.disabled = false;
   }
@@ -281,43 +322,47 @@ uploadForm.addEventListener("submit", async (event) => {
     setMessage(uploadMessage, "请先选择至少一张图片。", true);
     return;
   }
+  if (files.length > 10) {
+    setMessage(uploadMessage, "每条动态最多选择 10 张图片。", true);
+    return;
+  }
 
   const submit = uploadForm.querySelector('button[type="submit"]');
   submit.disabled = true;
-  const failures = [];
   let uploaded = 0;
-  let published = 0;
-  for (const file of files) {
-    setMessage(uploadMessage, `正在上传 ${file.name}…`);
-    try {
-      const path = await uploadImage(session, file);
-      uploaded += 1;
-      setMessage(uploadMessage, `图片已上传，正在发布 ${file.name}…`);
-      await publishPost(session, {
-        title: "图片分享",
-        content: "",
-        imagePath: path,
-      });
-      published += 1;
-    } catch (error) {
-      failures.push(`${file.name}：${error.message}`);
-    }
-  }
-
-  imageInput.value = "";
   try {
-    await Promise.all([refreshPosts(), refreshImages()]);
+    const imagePaths = [];
+    for (const file of files) {
+      setMessage(uploadMessage, `正在上传 ${file.name}（${uploaded + 1}/${files.length}）…`);
+      imagePaths.push(await uploadImage(session, file));
+      uploaded += 1;
+    }
+    setMessage(uploadMessage, "图片已上传，正在创建相册动态…");
+    await publishPost(session, {
+      title: "图片分享",
+      content: "",
+      imagePaths,
+    });
+    imageInput.value = "";
+    setMessage(uploadMessage, `已成功将 ${uploaded} 张图片发布为一条相册动态。`);
+    try {
+      await Promise.all([refreshPosts(), refreshImages()]);
+    } catch (error) {
+      setMessage(uploadMessage, `相册已发布，但列表刷新失败：${error.message}`, true);
+    }
   } catch (error) {
-    failures.push(`列表刷新失败：${error.message}`);
+    setMessage(
+      uploadMessage,
+      `相册发布未完成（已上传 ${uploaded}/${files.length} 张）：${error.message}${uploaded ? " 已上传的图片仍保存在图库中。" : ""}`,
+      true,
+    );
+  } finally {
+    submit.disabled = false;
   }
-  setMessage(
-    uploadMessage,
-    failures.length
-      ? `已上传 ${uploaded}/${files.length} 张，其中 ${published} 张已发布到首页。${failures.join("；")}`
-      : `已成功上传并发布 ${published} 张图片到首页。`,
-    failures.length > 0,
-  );
-  submit.disabled = false;
+});
+
+publishImageInput.addEventListener("change", () => {
+  updateSelectedImageMessage();
 });
 
 logoutButton.addEventListener("click", async () => {

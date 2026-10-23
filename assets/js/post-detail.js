@@ -2,15 +2,14 @@ import {
   getPublicPost,
   isConfigured,
   publicImageUrl,
-} from "./supabase.js?v=20261023-7";
+} from "./supabase.js?v=20261023-11";
 
 const status = document.querySelector("[data-post-status]");
 const article = document.querySelector("[data-post-content]");
 const title = document.querySelector("[data-post-title]");
 const date = document.querySelector("[data-post-date]");
 const body = document.querySelector("[data-post-body]");
-const image = document.querySelector("[data-post-image]");
-const download = document.querySelector("[data-post-download]");
+const images = document.querySelector("[data-post-images]");
 const postId = new URLSearchParams(location.search).get("id");
 
 function showMessage(message, isError = false) {
@@ -44,12 +43,26 @@ async function loadPost() {
     });
     body.textContent = post.content;
 
-    if (post.image_path) {
-      image.src = publicImageUrl(post.image_path);
-      image.alt = post.title ? `${post.title} 配图` : "动态图片";
-      image.hidden = false;
-      download.href = publicImageUrl(post.image_path, true);
-      download.hidden = false;
+    for (const [index, path] of post.images.entries()) {
+      const figure = document.createElement("figure");
+      figure.className = "post-detail-photo";
+      const imageLink = document.createElement("a");
+      imageLink.href = publicImageUrl(path);
+      imageLink.target = "_blank";
+      imageLink.rel = "noopener noreferrer";
+      imageLink.setAttribute("aria-label", `在新窗口查看图片 ${index + 1}`);
+      const image = document.createElement("img");
+      image.className = "post-detail-image";
+      image.src = publicImageUrl(path);
+      image.alt = `${post.title || "动态"} 配图 ${index + 1}`;
+      image.loading = "lazy";
+      imageLink.append(image);
+      const download = document.createElement("a");
+      download.className = "admin-button admin-button-secondary post-image-download";
+      download.href = publicImageUrl(path, true);
+      download.textContent = `下载图片 ${index + 1}`;
+      figure.append(imageLink, download);
+      images.append(figure);
     }
 
     article.hidden = false;

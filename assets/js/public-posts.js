@@ -3,7 +3,7 @@ import {
   listPublicPosts,
   publicImageUrl,
   searchPublicPosts,
-} from "./supabase.js?v=20261023-10";
+} from "./supabase.js?v=20261023-11";
 
 const feed = document.querySelector("[data-live-feed]");
 const status = document.querySelector("[data-live-feed-status]");
@@ -43,16 +43,28 @@ async function searchFeed() {
 function renderPost(post) {
   const card = document.createElement("a");
   card.className = "live-post";
-  if (post.image_path) card.classList.add("has-image");
+  if (post.images.length) card.classList.add("has-image");
   card.href = `/post/view/?id=${encodeURIComponent(post.id)}`;
   card.setAttribute("aria-label", `阅读全文：${post.title || "动态"}`);
 
-  if (post.image_path) {
-    const image = document.createElement("img");
-    image.src = publicImageUrl(post.image_path);
-    image.alt = post.title ? `${post.title} 配图` : "动态图片";
-    image.loading = "lazy";
-    card.append(image);
+  if (post.images.length) {
+    const gallery = document.createElement("div");
+    gallery.className = "live-post-images";
+    gallery.dataset.count = String(Math.min(post.images.length, 4));
+    for (const [index, path] of post.images.slice(0, 4).entries()) {
+      const image = document.createElement("img");
+      image.src = publicImageUrl(path);
+      image.alt = `${post.title || "动态"} 配图 ${index + 1}`;
+      image.loading = "lazy";
+      gallery.append(image);
+    }
+    if (post.images.length > 4) {
+      const more = document.createElement("span");
+      more.className = "live-post-image-more";
+      more.textContent = `+${post.images.length - 4}`;
+      gallery.append(more);
+    }
+    card.append(gallery);
   }
 
   const heading = document.createElement("h3");
