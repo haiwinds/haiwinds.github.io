@@ -1,4 +1,4 @@
-import { supabaseConfig } from "./supabase-config.js?v=20261023-10";
+import { supabaseConfig } from "./supabase-config.js?v=20261023-11";
 
 const SESSION_KEY = "haiwind-supabase-session";
 const PUBLIC_POSTS_CACHE_KEY = "haiwind-public-posts";
@@ -207,6 +207,17 @@ export function publicImageUrl(path, download = false) {
   return url.toString();
 }
 
+function withPostImages(post) {
+  const images = (post.post_images || [])
+    .sort((left, right) => left.position - right.position)
+    .map((image) => image.image_path)
+    .filter(Boolean);
+  if (post.image_path && !images.includes(post.image_path)) {
+    images.unshift(post.image_path);
+  }
+  return { ...post, images: [...new Set(images)] };
+}
+
 export async function listPublicPosts(limit = 6) {
   const cacheKey = `${PUBLIC_POSTS_CACHE_KEY}-${limit}`;
   const cachedValue = sessionStorage.getItem(cacheKey);
@@ -217,7 +228,7 @@ export async function listPublicPosts(limit = 6) {
         Array.isArray(cached.posts) &&
         Date.now() - cached.savedAt < PUBLIC_POSTS_CACHE_MS
       ) {
-        return cached.posts;
+        return cached.posts.map(withPostImages);
       }
     } catch {
       sessionStorage.removeItem(cacheKey);
@@ -225,12 +236,12 @@ export async function listPublicPosts(limit = 6) {
   }
 
   const query = new URLSearchParams({
-    select: "id,title,content,image_path,created_at",
+    select: "id,title,content,image_path,created_at,post_images(image_path,position)",
     published: "eq.true",
     order: "created_at.desc",
     limit: String(limit),
   });
-  const posts = await request(`/rest/v1/posts?${query}`);
+  const posts = (await request(`/rest/v1/posts?${query}`)).map(withPostImages);
   sessionStorage.setItem(
     cacheKey,
     JSON.stringify({ posts, savedAt: Date.now() }),
@@ -250,7 +261,7 @@ export async function searchPublicPosts(searchTerm) {
 
   while (true) {
     const query = new URLSearchParams({
-      select: "id,title,content,image_path,created_at",
+      select: "id,title,content,image_path,created_at,post_images(image_path,position)",
       published: "eq.true",
       or: `(title.ilike.${pattern},content.ilike.${pattern})`,
       order: "created_at.desc,id.desc",
@@ -258,7 +269,7 @@ export async function searchPublicPosts(searchTerm) {
       offset: String(offset),
     });
     const page = await request(`/rest/v1/posts?${query}`);
-    posts.push(...page);
+    posts.push(...page.map(withPostImages));
     if (page.length < pageSize) break;
     offset += pageSize;
   }
@@ -340,22 +351,23 @@ async function listStorageImages(prefix, token, depth = 0) {
 
 export async function getPublicPost(postId) {
   const query = new URLSearchParams({
-    select: "id,title,content,image_path,created_at",
+    select: "id,title,content,image_path,created_at,post_images(image_path,position)",
     id: `eq.${postId}`,
     published: "eq.true",
     limit: "1",
   });
   const posts = await request(`/rest/v1/posts?${query}`);
-  return posts[0] || null;
+  return posts[0] ? withPostImages(posts[0]) : null;
 }
 
 export async function listAdminPosts(session) {
   const query = new URLSearchParams({
-    select: "id,title,content,image_path,published,created_at",
+    select: "id,title,content,image_path,published,created_at,post_images(image_path,position)",
     order: "created_at.desc",
     limit: "50",
   });
-  return request(`/rest/v1/posts?${query}`, { token: session.access_token });
+  const posts = await request(`/rest/v1/posts?${query}`, { token: session.access_token });
+  return posts.map(withPostImages);
 }
 
 export async function setPostPublished(session, postId, published) {
@@ -370,11 +382,27 @@ export async function setPostPublished(session, postId, published) {
   return result;
 }
 
-export async function setPostImage(session, postId, imagePath) {
-  const query = new URLSearchParams({ id: `eq.${postId}` });
-  const result = await request(`/rest/v1/posts?${query}`, {
-    method: "PATCH",
-    body: { image_path: imagePath },
+export async function attachPostImage(session, postId, imagePath) {
+  const query = new URLSearchParams({
+    select: "image_path,position",
+    post_id: `eq.${postId}`,
+    order: "position.desc",
+  });
+  const existing = await request(`/rest/v1/post_images?${query}`, {
+    token: session.access_token,
+  });
+  if (existing.some((image) => image.image_path === imagePath)) return;
+  if (existing.length >= 10) {
+    throw new Error("每条动态最多添加 10 张图片。");
+  }
+
+  const result = await request("/rest/v1/post_images", {
+    method: "POST",
+    body: {
+      post_id: postId,
+      image_path: imagePath,
+      position: existing.length ? existing[0].position + 1 : 0,
+    },
     token: session.access_token,
     headers: { Prefer: "return=minimal" },
   });
@@ -382,9 +410,17 @@ export async function setPostImage(session, postId, imagePath) {
   return result;
 }
 
-export async function publishPost(session, { title, content, imagePath }) {
-  const postTitle = title.trim() || (imagePath ? "图片分享" : "");
-  const postContent = content.trim() || (imagePath ? "分享了一张图片。" : "");
+export async function publishPost(
+  session,
+  { title, content, imagePath, imagePaths = [] },
+) {
+  const paths = [...new Set([...imagePaths, imagePath].filter(Boolean))];
+  if (paths.length > 10) {
+    throw new Error("每条动态最多添加 10 张图片。");
+  }
+  const postTitle = title.trim() || (paths.length ? "图片分享" : "");
+  const postContent =
+    content.trim() || (paths.length ? `分享了 ${paths.length} 张图片。` : "");
   if (!postContent) {
     throw new Error("请填写动态内容，或先选择一张图片。");
   }
@@ -395,8 +431,16 @@ export async function publishPost(session, { title, content, imagePath }) {
       {
         title: postTitle,
         content: postContent,
-        image_path: imagePath || null,
+        image_path: paths[0] || null,
         created_by: session.user.id,
+        ...(paths.length
+          ? {
+              post_images: paths.map((path, position) => ({
+                image_path: path,
+                position,
+              })),
+            }
+          : {}),
       },
     ],
     token: session.access_token,
