@@ -1,4 +1,4 @@
-import { supabaseConfig } from "./supabase-config.js?v=20261023-7";
+import { supabaseConfig } from "./supabase-config.js?v=20261023-8";
 
 const SESSION_KEY = "haiwind-supabase-session";
 const PUBLIC_POSTS_CACHE_KEY = "haiwind-public-posts";

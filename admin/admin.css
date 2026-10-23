@@ -476,4 +476,17 @@
   .admin-file-picker {
     justify-content: space-between;
   }
+
+  .post-detail-nav {
+    gap: 0.65rem;
+  }
+
+  .post-detail-nav .admin-back-link {
+    font-size: 0.78rem;
+  }
+
+  .post-detail-admin-link {
+    font-size: 0.78rem;
+    padding: 0.45rem 0.65rem;
+  }
 }
