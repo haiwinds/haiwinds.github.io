@@ -8,7 +8,7 @@
     <title>博客管理 | Haiwind</title>
     <link rel="stylesheet" href="/site.css">
     <link rel="stylesheet" href="/admin/admin.css">
-    <script type="module" src="/assets/js/admin.js?v=20261023-4"></script>
+    <script type="module" src="/assets/js/admin.js?v=20261023-7"></script>
   </head>
   <body class="admin-page">
     <header class="admin-header">
@@ -70,14 +70,14 @@
               <p class="admin-eyebrow">IMAGE LIBRARY</p>
               <h2>图片管理</h2>
             </div>
-            <p class="admin-hint">支持 JPG、PNG、WebP、GIF，单张最大 10 MB</p>
+            <p class="admin-hint">支持 JPG、PNG、WebP、GIF，单张最大 10 MB；每张图片上传后会单独发布成一条首页动态。</p>
           </div>
           <form class="admin-upload-form" data-upload-form>
             <label class="admin-file-picker" for="image-files">
               <span>选择图片</span>
               <input id="image-files" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple>
             </label>
-            <button class="admin-button admin-button-primary" type="submit">上传图片</button>
+            <button class="admin-button admin-button-primary" type="submit">上传并发布到首页</button>
             <p class="admin-message" data-upload-message role="status" aria-live="polite"></p>
           </form>
           <p class="admin-hint">图片链接公开可访问；请勿上传私人或敏感内容。</p>

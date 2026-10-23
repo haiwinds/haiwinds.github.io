@@ -85,6 +85,12 @@ set
   file_size_limit = excluded.file_size_limit,
   allowed_mime_types = excluded.allowed_mime_types;
 
+drop policy if exists "Anyone can list public blog images" on storage.objects;
+create policy "Anyone can list public blog images"
+  on storage.objects for select
+  to anon, authenticated
+  using (bucket_id = 'blog-images');
+
 drop policy if exists "Admins can list their blog images" on storage.objects;
 create policy "Admins can list their blog images"
   on storage.objects for select
