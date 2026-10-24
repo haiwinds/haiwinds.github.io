@@ -47,19 +47,44 @@ function renderPost(post) {
   card.href = `/post/view/?id=${encodeURIComponent(post.id)}`;
   card.setAttribute("aria-label", `阅读全文：${post.title || "动态"}`);
 
+  const heading = document.createElement("h3");
+  heading.textContent = post.title || "动态";
+
   if (post.images.length) {
     const gallery = document.createElement("div");
     gallery.className = "live-post-images";
     gallery.dataset.count = String(Math.min(post.images.length, 4));
-    for (const [index, path] of post.images.slice(0, 4).entries()) {
+    let more = null;
+    const updateGallery = () => {
+      const remaining = gallery.querySelectorAll("img").length;
+      gallery.dataset.count = String(Math.min(remaining, 4));
+      if (more) {
+        const hiddenImages = remaining - 4;
+        more.textContent = `+${hiddenImages}`;
+        more.hidden = hiddenImages <= 0;
+      }
+      if (remaining === 0) {
+        gallery.remove();
+        card.classList.remove("has-image");
+        const fallback = document.createElement("span");
+        fallback.className = "live-post-image-error";
+        fallback.textContent = "图片暂时无法加载";
+        card.insertBefore(fallback, heading);
+      }
+    };
+    for (const [index, path] of post.images.entries()) {
       const image = document.createElement("img");
       image.src = publicImageUrl(path);
       image.alt = `${post.title || "动态"} 配图 ${index + 1}`;
       image.loading = "lazy";
+      image.addEventListener("error", () => {
+        image.remove();
+        updateGallery();
+      }, { once: true });
       gallery.append(image);
     }
     if (post.images.length > 4) {
-      const more = document.createElement("span");
+      more = document.createElement("span");
       more.className = "live-post-image-more";
       more.textContent = `+${post.images.length - 4}`;
       gallery.append(more);
@@ -67,8 +92,6 @@ function renderPost(post) {
     card.append(gallery);
   }
 
-  const heading = document.createElement("h3");
-  heading.textContent = post.title || "动态";
   card.append(heading);
 
   const date = document.createElement("time");
