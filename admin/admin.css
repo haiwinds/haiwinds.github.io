@@ -105,6 +105,57 @@
   margin: 0.4rem 0 1.5rem;
 }
 
+.static-publish-panel {
+  border-color: #cbd7f5;
+}
+
+.static-publish-panel > .admin-hint {
+  margin: 0 0 1rem;
+}
+
+.static-export-result {
+  background: #f5f7fb;
+  border-radius: 12px;
+  margin-top: 1.25rem;
+  padding: 1rem 1.25rem;
+}
+
+.static-export-result[hidden] {
+  display: none;
+}
+
+.static-export-result h3 {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.static-export-result ol {
+  color: var(--admin-muted);
+  font-size: 0.88rem;
+  line-height: 1.7;
+  padding-left: 1.25rem;
+}
+
+.static-export-result code {
+  color: var(--admin-ink);
+}
+
+.static-export-downloads {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 0.75rem;
+}
+
+.static-export-downloads a {
+  background: #fff;
+  border: 1px solid var(--admin-line);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  padding: 0.55rem 0.75rem;
+  text-decoration: none;
+}
+
 .admin-page form label {
   color: var(--admin-ink);
   display: block;

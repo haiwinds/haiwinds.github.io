@@ -1,9 +1,8 @@
 import {
-  isConfigured,
   listPublicPosts,
   publicImageUrl,
   searchPublicPosts,
-} from "./supabase.js?v=20261023-11";
+} from "./supabase.js?v=20261024-1";
 
 const feed = document.querySelector("[data-live-feed]");
 const status = document.querySelector("[data-live-feed-status]");
@@ -121,11 +120,6 @@ async function loadFeed() {
   if (searchInput) {
     searchInput.value = new URLSearchParams(location.search).get("q") || "";
   }
-  if (!isConfigured()) {
-    status.textContent = "动态发布功能尚未配置 Supabase。";
-    return;
-  }
-
   status.textContent = "正在加载动态…";
   try {
     const requestedLimit = Number(feed.dataset.postLimit);
