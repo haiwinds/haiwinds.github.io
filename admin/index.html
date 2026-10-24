@@ -7,8 +7,8 @@
     <meta name="description" content="Haiwind 博客管理后台">
     <title>博客管理 | Haiwind</title>
     <link rel="stylesheet" href="/site.css">
-    <link rel="stylesheet" href="/admin/admin.css?v=20261024-1">
-    <script type="module" src="/assets/js/static-publish.js?v=20261024-1"></script>
+    <link rel="stylesheet" href="/admin/admin.css?v=20261025-3">
+    <script type="module" src="/assets/js/static-publish.js?v=20261025-2"></script>
     <script type="module" src="/assets/js/admin.js?v=20261024-1"></script>
   </head>
   <body class="admin-page">
@@ -24,40 +24,6 @@
         <p>今天发生了什么有趣的事情呢🤭，快来告诉我吧😉🤩🤔🫡🤨😐😑😶🫥😶‍🌫️😣🤐😌😛😜😝🤤😒😓😔😕🫤🙃🫠</p>
       </section>
 
-      <section class="admin-panel static-publish-panel">
-        <div class="admin-section-heading">
-          <div>
-            <p class="admin-eyebrow">GITHUB PAGES BACKUP</p>
-            <h2>Supabase 不可用时的备用发布</h2>
-          </div>
-        </div>
-        <p class="admin-hint">填写内容后生成静态动态文件和图片下载链接。把它们加入 GitHub 仓库并提交后，GitHub Pages 会自动显示动态，不依赖 Supabase。</p>
-        <form data-static-publish-form>
-          <label for="static-post-title">标题 <span>可选</span></label>
-          <input id="static-post-title" name="title" type="text" maxlength="120" placeholder="动态标题">
-          <label for="static-post-content">内容 <span>可选</span></label>
-          <textarea id="static-post-content" name="content" rows="4" maxlength="10000" placeholder="写下动态内容…"></textarea>
-          <label class="admin-file-picker admin-post-file-picker" for="static-post-images">
-            <span>选择图片（最多 10 张）</span>
-            <input id="static-post-images" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple>
-          </label>
-          <div class="admin-form-actions">
-            <button class="admin-button admin-button-primary" type="submit">生成备用发布文件</button>
-            <p class="admin-message" data-static-publish-message role="status" aria-live="polite"></p>
-          </div>
-        </form>
-        <div class="static-export-result" data-static-export-result hidden>
-          <h3>文件已准备好</h3>
-          <ol>
-            <li>下载下面的动态 JSON 和图片文件。</li>
-            <li>把图片放到仓库的 <code>images/posts/</code> 目录。</li>
-            <li>把 JSON 对象追加到 <code>data/static-posts.json</code> 数组中，然后提交并合并到 <code>main</code>。</li>
-          </ol>
-          <div class="static-export-downloads" data-static-post-download></div>
-          <div class="static-export-downloads" data-static-image-downloads></div>
-        </div>
-      </section>
-
       <section class="admin-panel admin-login" data-login-panel>
         <h2>管理员登录</h2>
         <p>请使用已在 Supabase 中创建并授权的管理员账号。</p>
@@ -69,6 +35,38 @@
           <button class="admin-button admin-button-primary" type="submit">登录管理后台</button>
           <p class="admin-message" data-login-message role="status" aria-live="polite"></p>
         </form>
+      </section>
+
+      <section class="admin-panel static-publish-panel">
+        <div class="admin-section-heading">
+          <div>
+            <p class="admin-eyebrow">GITHUB PAGES BACKUP</p>
+            <h2>Supabase 不可用时的备用发布</h2>
+          </div>
+        </div>
+        <p class="admin-hint">通过 Cloudflare Worker 安全提交到 GitHub。首次部署后填入 Worker 地址；网页不会保存发布账号和密码。</p>
+        <form data-static-publish-form>
+          <label for="static-publish-endpoint">Cloudflare Worker 地址</label>
+          <input id="static-publish-endpoint" name="endpoint" type="url" autocomplete="url" required placeholder="https://haiwind-static-publisher.你的账号.workers.dev">
+          <label for="static-publish-username">备用发布账号</label>
+          <input id="static-publish-username" name="username" type="text" autocomplete="username" required>
+          <label for="static-publish-password">备用发布密码</label>
+          <input id="static-publish-password" name="password" type="password" autocomplete="current-password" required>
+          <label for="static-post-title">标题 <span>可选</span></label>
+          <input id="static-post-title" name="title" type="text" maxlength="120" placeholder="动态标题">
+          <label for="static-post-content">内容 <span>可选</span></label>
+          <textarea id="static-post-content" name="content" rows="4" maxlength="10000" placeholder="写下动态内容…"></textarea>
+          <label class="admin-file-picker admin-post-file-picker" for="static-post-images">
+            <span>选择图片（最多 10 张）</span>
+            <input id="static-post-images" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple>
+          </label>
+          <div class="admin-form-actions">
+            <button class="admin-button admin-button-primary" type="submit">直接发布</button>
+            <p class="admin-message" data-static-publish-message role="status" aria-live="polite"></p>
+          </div>
+        </form>
+        <p class="admin-hint">单张图片最大 10 MB，单条动态最多 10 张图片，图片总大小不超过 25 MB。Cloudflare Worker 尚未部署前，直接发布暂不可用。</p>
+        <a class="admin-button admin-button-secondary static-publish-link" data-static-publish-link hidden target="_blank" rel="noopener noreferrer">查看 GitHub 提交</a>
       </section>
 
       <section class="admin-dashboard" data-dashboard hidden>
