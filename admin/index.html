@@ -7,8 +7,9 @@
     <meta name="description" content="Haiwind 博客管理后台">
     <title>博客管理 | Haiwind</title>
     <link rel="stylesheet" href="/site.css">
-    <link rel="stylesheet" href="/admin/admin.css">
-    <script type="module" src="/assets/js/admin.js?v=20261023-11"></script>
+    <link rel="stylesheet" href="/admin/admin.css?v=20261024-1">
+    <script type="module" src="/assets/js/static-publish.js?v=20261024-1"></script>
+    <script type="module" src="/assets/js/admin.js?v=20261024-1"></script>
   </head>
   <body class="admin-page">
     <header class="admin-header">
@@ -21,6 +22,40 @@
         <p class="admin-eyebrow">SUPABASE · CONTENT STUDIO</p>
         <h1>Do my  Blog</h1>
         <p>今天发生了什么有趣的事情呢🤭，快来告诉我吧😉🤩🤔🫡🤨😐😑😶🫥😶‍🌫️😣🤐😌😛😜😝🤤😒😓😔😕🫤🙃🫠</p>
+      </section>
+
+      <section class="admin-panel static-publish-panel">
+        <div class="admin-section-heading">
+          <div>
+            <p class="admin-eyebrow">GITHUB PAGES BACKUP</p>
+            <h2>Supabase 不可用时的备用发布</h2>
+          </div>
+        </div>
+        <p class="admin-hint">填写内容后生成静态动态文件和图片下载链接。把它们加入 GitHub 仓库并提交后，GitHub Pages 会自动显示动态，不依赖 Supabase。</p>
+        <form data-static-publish-form>
+          <label for="static-post-title">标题 <span>可选</span></label>
+          <input id="static-post-title" name="title" type="text" maxlength="120" placeholder="动态标题">
+          <label for="static-post-content">内容 <span>可选</span></label>
+          <textarea id="static-post-content" name="content" rows="4" maxlength="10000" placeholder="写下动态内容…"></textarea>
+          <label class="admin-file-picker admin-post-file-picker" for="static-post-images">
+            <span>选择图片（最多 10 张）</span>
+            <input id="static-post-images" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple>
+          </label>
+          <div class="admin-form-actions">
+            <button class="admin-button admin-button-primary" type="submit">生成备用发布文件</button>
+            <p class="admin-message" data-static-publish-message role="status" aria-live="polite"></p>
+          </div>
+        </form>
+        <div class="static-export-result" data-static-export-result hidden>
+          <h3>文件已准备好</h3>
+          <ol>
+            <li>下载下面的动态 JSON 和图片文件。</li>
+            <li>把图片放到仓库的 <code>images/posts/</code> 目录。</li>
+            <li>把 JSON 对象追加到 <code>data/static-posts.json</code> 数组中，然后提交并合并到 <code>main</code>。</li>
+          </ol>
+          <div class="static-export-downloads" data-static-post-download></div>
+          <div class="static-export-downloads" data-static-image-downloads></div>
+        </div>
       </section>
 
       <section class="admin-panel admin-login" data-login-panel>

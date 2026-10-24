@@ -12,7 +12,7 @@ import {
   signIn,
   signOut,
   uploadImage,
-} from "./supabase.js?v=20261023-11";
+} from "./supabase.js?v=20261024-1";
 
 const loginPanel = document.querySelector("[data-login-panel]");
 const dashboard = document.querySelector("[data-dashboard]");

@@ -1,8 +1,7 @@
 import {
-  isConfigured,
   listPublicImages,
   publicImageUrl,
-} from "./supabase.js?v=20261023-9";
+} from "./supabase.js?v=20261024-1";
 
 const grid = document.querySelector("[data-gallery-grid]");
 const status = document.querySelector("[data-gallery-status]");
@@ -76,11 +75,6 @@ async function loadGallery() {
   if (searchInput) {
     searchInput.value = new URLSearchParams(location.search).get("q") || "";
   }
-  if (!isConfigured()) {
-    status.textContent = "图片浏览功能尚未配置 Supabase。";
-    return;
-  }
-
   try {
     const images = await listPublicImages();
     grid.replaceChildren(...images.map(createImageCard));

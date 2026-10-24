@@ -1,3 +1,4 @@
+import { listStaticPosts } from "./static-posts.js?v=20261024-1";
 import { supabaseConfig } from "./supabase-config.js?v=20261023-11";
 
 const SESSION_KEY = "haiwind-supabase-session";
@@ -11,6 +12,36 @@ const ALLOWED_IMAGE_TYPES = new Set([
   "image/webp",
   "image/gif",
 ]);
+
+function mergePosts(...groups) {
+  const postsById = new Map();
+  for (const posts of groups) {
+    for (const post of posts) postsById.set(post.id, post);
+  }
+  return [...postsById.values()].sort(
+    (left, right) => Date.parse(right.created_at) - Date.parse(left.created_at),
+  );
+}
+
+async function getStaticPosts() {
+  try {
+    return await listStaticPosts();
+  } catch (error) {
+    console.error("Could not load GitHub Pages backup posts:", error);
+    return [];
+  }
+}
+
+function staticPostImages(posts) {
+  return posts.flatMap((post) =>
+    post.images.map((path, index) => ({
+      id: `${post.id}-${index}`,
+      name: path.split("/").at(-1),
+      path,
+      created_at: post.created_at,
+    })),
+  );
+}
 
 export function isConfigured() {
   return getConfigurationError() === null;
@@ -198,6 +229,9 @@ export async function isBlogAdmin(session) {
 }
 
 export function publicImageUrl(path, download = false) {
+  if (path.startsWith("/") && !path.startsWith("//")) {
+    return new URL(path, location.origin).toString();
+  }
   const encodedPath = path.split("/").map(encodeURIComponent).join("/");
   const url = new URL(
     `/storage/v1/object/public/blog-images/${encodedPath}`,
@@ -219,16 +253,18 @@ function withPostImages(post) {
 }
 
 export async function listPublicPosts(limit = 6) {
+  const staticPosts = await getStaticPosts();
   const cacheKey = `${PUBLIC_POSTS_CACHE_KEY}-${limit}`;
   const cachedValue = sessionStorage.getItem(cacheKey);
+  let cachedPosts = [];
   if (cachedValue) {
     try {
       const cached = JSON.parse(cachedValue);
-      if (
-        Array.isArray(cached.posts) &&
-        Date.now() - cached.savedAt < PUBLIC_POSTS_CACHE_MS
-      ) {
-        return cached.posts.map(withPostImages);
+      if (Array.isArray(cached.posts)) {
+        cachedPosts = cached.posts.map(withPostImages);
+        if (Date.now() - cached.savedAt < PUBLIC_POSTS_CACHE_MS) {
+          return mergePosts(staticPosts, cachedPosts).slice(0, limit);
+        }
       }
     } catch {
       sessionStorage.removeItem(cacheKey);
@@ -241,15 +277,28 @@ export async function listPublicPosts(limit = 6) {
     order: "created_at.desc",
     limit: String(limit),
   });
-  const posts = (await request(`/rest/v1/posts?${query}`)).map(withPostImages);
-  sessionStorage.setItem(
-    cacheKey,
-    JSON.stringify({ posts, savedAt: Date.now() }),
-  );
-  return posts;
+  try {
+    const posts = (await request(`/rest/v1/posts?${query}`)).map(withPostImages);
+    sessionStorage.setItem(
+      cacheKey,
+      JSON.stringify({ posts, savedAt: Date.now() }),
+    );
+    return mergePosts(staticPosts, posts).slice(0, limit);
+  } catch (error) {
+    const fallbackPosts = mergePosts(staticPosts, cachedPosts);
+    if (fallbackPosts.length) return fallbackPosts.slice(0, limit);
+    throw error;
+  }
 }
 
 export async function searchPublicPosts(searchTerm) {
+  const staticPosts = await getStaticPosts();
+  const normalizedTerm = searchTerm.trim().toLocaleLowerCase("zh-CN");
+  const staticMatches = staticPosts.filter((post) =>
+    `${post.title}\n${post.content}`
+      .toLocaleLowerCase("zh-CN")
+      .includes(normalizedTerm),
+  );
   const escapedTerm = searchTerm
     .replaceAll("\\", "\\\\")
     .replaceAll('"', '\\"')
@@ -259,25 +308,31 @@ export async function searchPublicPosts(searchTerm) {
   const posts = [];
   let offset = 0;
 
-  while (true) {
-    const query = new URLSearchParams({
-      select: "id,title,content,image_path,created_at,post_images(image_path,position)",
-      published: "eq.true",
-      or: `(title.ilike.${pattern},content.ilike.${pattern})`,
-      order: "created_at.desc,id.desc",
-      limit: String(pageSize),
-      offset: String(offset),
-    });
-    const page = await request(`/rest/v1/posts?${query}`);
-    posts.push(...page.map(withPostImages));
-    if (page.length < pageSize) break;
-    offset += pageSize;
+  try {
+    while (true) {
+      const query = new URLSearchParams({
+        select: "id,title,content,image_path,created_at,post_images(image_path,position)",
+        published: "eq.true",
+        or: `(title.ilike.${pattern},content.ilike.${pattern})`,
+        order: "created_at.desc,id.desc",
+        limit: String(pageSize),
+        offset: String(offset),
+      });
+      const page = await request(`/rest/v1/posts?${query}`);
+      posts.push(...page.map(withPostImages));
+      if (page.length < pageSize) break;
+      offset += pageSize;
+    }
+  } catch (error) {
+    if (staticPosts.length) return staticMatches;
+    throw error;
   }
 
-  return posts;
+  return mergePosts(staticMatches, posts);
 }
 
 export async function listPublicImages() {
+  const staticImages = staticPostImages(await getStaticPosts());
   const cachedValue = sessionStorage.getItem(PUBLIC_IMAGES_CACHE_KEY);
   if (cachedValue) {
     try {
@@ -286,22 +341,38 @@ export async function listPublicImages() {
         Array.isArray(cached.images) &&
         Date.now() - cached.savedAt < PUBLIC_POSTS_CACHE_MS
       ) {
-        return cached.images;
+        return mergeImages(staticImages, cached.images);
       }
     } catch {
       sessionStorage.removeItem(PUBLIC_IMAGES_CACHE_KEY);
     }
   }
 
-  const images = await listStorageImages("");
-  images.sort((left, right) =>
+  if (!isConfigured()) return staticImages;
+  try {
+    const images = await listStorageImages("");
+    images.sort((left, right) =>
+      (right.created_at || "").localeCompare(left.created_at || ""),
+    );
+    sessionStorage.setItem(
+      PUBLIC_IMAGES_CACHE_KEY,
+      JSON.stringify({ images, savedAt: Date.now() }),
+    );
+    return mergeImages(staticImages, images);
+  } catch (error) {
+    if (staticImages.length) return staticImages;
+    throw error;
+  }
+}
+
+function mergeImages(...groups) {
+  const imagesByPath = new Map();
+  for (const images of groups) {
+    for (const image of images) imagesByPath.set(image.path, image);
+  }
+  return [...imagesByPath.values()].sort((left, right) =>
     (right.created_at || "").localeCompare(left.created_at || ""),
   );
-  sessionStorage.setItem(
-    PUBLIC_IMAGES_CACHE_KEY,
-    JSON.stringify({ images, savedAt: Date.now() }),
-  );
-  return images;
 }
 
 async function listStorageImages(prefix, token, depth = 0) {
@@ -350,6 +421,8 @@ async function listStorageImages(prefix, token, depth = 0) {
 }
 
 export async function getPublicPost(postId) {
+  const staticPost = (await getStaticPosts()).find((post) => post.id === postId);
+  if (staticPost) return staticPost;
   const query = new URLSearchParams({
     select: "id,title,content,image_path,created_at,post_images(image_path,position)",
     id: `eq.${postId}`,

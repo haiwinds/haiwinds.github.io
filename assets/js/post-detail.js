@@ -1,8 +1,7 @@
 import {
   getPublicPost,
-  isConfigured,
   publicImageUrl,
-} from "./supabase.js?v=20261023-11";
+} from "./supabase.js?v=20261024-1";
 
 const status = document.querySelector("[data-post-status]");
 const article = document.querySelector("[data-post-content]");
@@ -19,12 +18,8 @@ function showMessage(message, isError = false) {
 }
 
 async function loadPost() {
-  if (!postId || !/^[0-9a-f-]{36}$/i.test(postId)) {
+  if (!postId || !/^(?:[0-9a-f-]{36}|static-[a-z0-9-]+)$/i.test(postId)) {
     showMessage("动态链接无效。", true);
-    return;
-  }
-  if (!isConfigured()) {
-    showMessage("动态服务尚未配置。请稍后再试。", true);
     return;
   }
 
@@ -67,6 +62,9 @@ async function loadPost() {
       const download = document.createElement("a");
       download.className = "admin-button admin-button-secondary post-image-download";
       download.href = publicImageUrl(path, true);
+      if (path.startsWith("/")) {
+        download.download = path.split("/").at(-1) || "image";
+      }
       download.textContent = `下载图片 ${index + 1}`;
       figure.append(imageLink, download);
       images.append(figure);
