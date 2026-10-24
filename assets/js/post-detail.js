@@ -56,6 +56,13 @@ async function loadPost() {
       image.src = publicImageUrl(path);
       image.alt = `${post.title || "动态"} 配图 ${index + 1}`;
       image.loading = "lazy";
+      image.addEventListener("error", () => {
+        figure.remove();
+        if (!images.querySelector(".post-detail-photo")) {
+          images.textContent = "图片暂时无法加载，请确认图片仍保存在 Supabase Storage 中。";
+          images.classList.add("post-detail-image-error");
+        }
+      }, { once: true });
       imageLink.append(image);
       const download = document.createElement("a");
       download.className = "admin-button admin-button-secondary post-image-download";
