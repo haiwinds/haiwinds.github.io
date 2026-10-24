@@ -1,0 +1,18 @@
+name = "haiwind-static-publisher"
+main = "worker.js"
+compatibility_date = "2026-10-25"
+workers_dev = true
+
+[vars]
+ALLOWED_ORIGIN = "https://haiwinds.github.io"
+GITHUB_OWNER = "haiwinds"
+GITHUB_REPO = "haiwinds.github.io"
+GITHUB_BRANCH = "main"
+
+[[durable_objects.bindings]]
+name = "PUBLISH_RATE_LIMITER"
+class_name = "PublisherRateLimiter"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["PublisherRateLimiter"]
