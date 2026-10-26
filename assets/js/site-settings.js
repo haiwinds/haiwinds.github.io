@@ -1,3 +1,3 @@
 export const siteSettings = {
-  avatarUrl: "/images/gohugo-default-sample-hero-image.png",
+  avatarUrl: "/images/avatar.jpg?v=20261026-1",
 };
