@@ -12,7 +12,7 @@ import {
   signIn,
   signOut,
   uploadImage,
-} from "./supabase.js?v=20261024-1";
+} from "./supabase.js?v=20261026-1";
 
 const loginPanel = document.querySelector("[data-login-panel]");
 const dashboard = document.querySelector("[data-dashboard]");
@@ -37,6 +37,14 @@ const logoutButton = document.querySelector("[data-logout]");
 let session = null;
 let pendingExistingImagePath = "";
 let selectedNewImagePaths = [];
+let selectedLocalFiles = [];
+
+function setSelectedLocalFiles(files) {
+  const transfer = new DataTransfer();
+  for (const file of files) transfer.items.add(file);
+  publishImageInput.files = transfer.files;
+  selectedLocalFiles = [...files];
+}
 
 function setMessage(element, message, isError = false) {
   element.textContent = message;
@@ -294,6 +302,7 @@ publishForm.addEventListener("submit", async (event) => {
     });
     publishForm.reset();
     selectedNewImagePaths = [];
+    selectedLocalFiles = [];
     updateSelectedImageMessage();
     setMessage(publishMessage, "已发布，公开页面会自动显示这条动态。");
     try {
@@ -303,7 +312,9 @@ publishForm.addEventListener("submit", async (event) => {
     }
   } catch (error) {
     selectedNewImagePaths = [...new Set([...selectedNewImagePaths, ...uploadedPaths])];
-    if (uploadedPaths.length) publishImageInput.value = "";
+    if (uploadedPaths.length) {
+      setSelectedLocalFiles(files.slice(uploadedPaths.length));
+    }
     updateSelectedImageMessage();
     setMessage(
       publishMessage,
@@ -362,6 +373,26 @@ uploadForm.addEventListener("submit", async (event) => {
 });
 
 publishImageInput.addEventListener("change", () => {
+  const newlyChosen = [...publishImageInput.files].filter(
+    (file) =>
+      !selectedLocalFiles.some(
+        (selected) =>
+          selected.name === file.name &&
+          selected.size === file.size &&
+          selected.lastModified === file.lastModified,
+      ),
+  );
+  const availableSlots = Math.max(
+    0,
+    10 - selectedNewImagePaths.length - selectedLocalFiles.length,
+  );
+  setSelectedLocalFiles([
+    ...selectedLocalFiles,
+    ...newlyChosen.slice(0, availableSlots),
+  ]);
+  if (newlyChosen.length > availableSlots) {
+    setMessage(publishMessage, "每条动态最多添加 10 张图片，超出的图片未加入。", true);
+  }
   updateSelectedImageMessage();
 });
 

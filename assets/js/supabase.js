@@ -129,6 +129,8 @@ async function request(path, { method = "GET", body, token, headers = {} } = {})
       detail = "登录尝试过于频繁，请稍等几分钟后重试。";
     } else if (/function .*is_blog_admin.*(not found|does not exist)/i.test(detail)) {
       detail = "Supabase 数据库结构未更新。请在 SQL Editor 重新执行仓库中的 supabase/schema.sql。";
+    } else if (/function .*publish_post.*(not found|schema cache)/i.test(detail)) {
+      detail = "Supabase 发布函数尚未更新。请在 SQL Editor 重新执行仓库中的 supabase/schema.sql，然后刷新管理页面。";
     }
     throw new Error(detail || `Supabase 请求失败（HTTP ${response.status}）。`);
   }
@@ -498,26 +500,14 @@ export async function publishPost(
     throw new Error("请填写动态内容，或先选择一张图片。");
   }
 
-  const result = await request("/rest/v1/posts", {
+  const result = await request("/rest/v1/rpc/publish_post", {
     method: "POST",
-    body: [
-      {
-        title: postTitle,
-        content: postContent,
-        image_path: paths[0] || null,
-        created_by: session.user.id,
-        ...(paths.length
-          ? {
-              post_images: paths.map((path, position) => ({
-                image_path: path,
-                position,
-              })),
-            }
-          : {}),
-      },
-    ],
+    body: {
+      p_title: postTitle,
+      p_content: postContent,
+      p_image_paths: paths,
+    },
     token: session.access_token,
-    headers: { Prefer: "return=representation" },
   });
   clearPublicPostsCache();
   return result;

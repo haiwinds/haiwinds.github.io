@@ -156,6 +156,44 @@ create policy "Admins can update posts"
   using ((select public.is_blog_admin()))
   with check ((select public.is_blog_admin()));
 
+create or replace function public.publish_post(
+  p_title text,
+  p_content text,
+  p_image_paths text[]
+)
+returns public.posts
+language plpgsql
+set search_path = ''
+as $$
+declare
+  created_post public.posts;
+begin
+  if coalesce(cardinality(p_image_paths), 0) > 10 then
+    raise exception 'A post can contain no more than 10 images.'
+      using errcode = 'check_violation';
+  end if;
+
+  insert into public.posts (title, content, image_path, created_by)
+  values (
+    p_title,
+    p_content,
+    p_image_paths[1],
+    (select auth.uid())
+  )
+  returning * into created_post;
+
+  insert into public.post_images (post_id, image_path, position)
+  select created_post.id, image_path, (ordinality - 1)::smallint
+  from unnest(coalesce(p_image_paths, array[]::text[]))
+    with ordinality as images(image_path, ordinality);
+
+  return created_post;
+end;
+$$;
+
+revoke all on function public.publish_post(text, text, text[]) from public, anon, authenticated;
+grant execute on function public.publish_post(text, text, text[]) to authenticated;
+
 insert into storage.buckets (
   id,
   name,
