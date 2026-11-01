@@ -1,5 +1,5 @@
 import { listStaticPosts } from "./static-posts.js?v=20261024-1";
-import { supabaseConfig } from "./supabase-config.js?v=20261102-1";
+import { supabaseConfig } from "./supabase-config.js?v=20261102-2";
 
 const SESSION_KEY = "haiwind-supabase-session";
 const PUBLIC_POSTS_CACHE_KEY = "haiwind-public-posts";
