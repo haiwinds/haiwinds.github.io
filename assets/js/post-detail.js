@@ -17,6 +17,71 @@ function showMessage(message, isError = false) {
   status.hidden = false;
 }
 
+function createImageFigure(path, index, inline = false) {
+  const figure = document.createElement("figure");
+  figure.className = "post-detail-photo";
+  const imageLink = document.createElement("a");
+  imageLink.href = publicImageUrl(path);
+  imageLink.target = "_blank";
+  imageLink.rel = "noopener noreferrer";
+  imageLink.setAttribute("aria-label", `在新窗口查看图片 ${index + 1}`);
+  const image = document.createElement("img");
+  image.className = "post-detail-image";
+  image.src = publicImageUrl(path);
+  image.alt = `动态配图 ${index + 1}`;
+  image.loading = "lazy";
+  image.addEventListener("error", () => {
+    if (inline) {
+      const error = document.createElement("span");
+      error.className = "post-detail-image-error";
+      error.textContent = "图片暂时无法加载，请确认图片仍保存在 Supabase Storage 中。";
+      figure.replaceChildren(error);
+      return;
+    }
+    figure.remove();
+    if (!images.querySelector(".post-detail-photo")) {
+      images.textContent = "图片暂时无法加载，请确认图片仍保存在 Supabase Storage 中。";
+      images.classList.add("post-detail-image-error");
+    }
+  }, { once: true });
+  imageLink.append(image);
+  const download = document.createElement("a");
+  download.className = "admin-button admin-button-secondary post-image-download";
+  download.href = publicImageUrl(path, true);
+  if (path.startsWith("/")) {
+    download.download = path.split("/").at(-1) || "image";
+  }
+  download.textContent = `下载图片 ${index + 1}`;
+  figure.append(imageLink, download);
+  return figure;
+}
+
+function renderPostBody(content, postImages) {
+  const usedImageIndices = new Set();
+  const markerPattern = /\{\{image:([^}]+)\}\}/g;
+  let cursor = 0;
+  let match;
+  while ((match = markerPattern.exec(content))) {
+    body.append(document.createTextNode(content.slice(cursor, match.index)));
+    let path;
+    try {
+      path = decodeURIComponent(match[1]);
+    } catch {
+      path = "";
+    }
+    const imageIndex = postImages.indexOf(path);
+    if (imageIndex < 0) {
+      body.append(document.createTextNode(match[0]));
+    } else {
+      body.append(createImageFigure(path, imageIndex, true));
+      usedImageIndices.add(imageIndex);
+    }
+    cursor = markerPattern.lastIndex;
+  }
+  body.append(document.createTextNode(content.slice(cursor)));
+  return usedImageIndices;
+}
+
 async function loadPost() {
   if (!postId || !/^(?:[0-9a-f-]{36}|static-[a-z0-9-]+)$/i.test(postId)) {
     showMessage("动态链接无效。", true);
@@ -36,38 +101,12 @@ async function loadPost() {
       dateStyle: "long",
       timeStyle: "short",
     });
-    body.textContent = post.content;
+    const inlineImageIndices = renderPostBody(post.content, post.images);
 
     for (const [index, path] of post.images.entries()) {
-      const figure = document.createElement("figure");
-      figure.className = "post-detail-photo";
-      const imageLink = document.createElement("a");
-      imageLink.href = publicImageUrl(path);
-      imageLink.target = "_blank";
-      imageLink.rel = "noopener noreferrer";
-      imageLink.setAttribute("aria-label", `在新窗口查看图片 ${index + 1}`);
-      const image = document.createElement("img");
-      image.className = "post-detail-image";
-      image.src = publicImageUrl(path);
-      image.alt = `${post.title || "动态"} 配图 ${index + 1}`;
-      image.loading = "lazy";
-      image.addEventListener("error", () => {
-        figure.remove();
-        if (!images.querySelector(".post-detail-photo")) {
-          images.textContent = "图片暂时无法加载，请确认图片仍保存在 Supabase Storage 中。";
-          images.classList.add("post-detail-image-error");
-        }
-      }, { once: true });
-      imageLink.append(image);
-      const download = document.createElement("a");
-      download.className = "admin-button admin-button-secondary post-image-download";
-      download.href = publicImageUrl(path, true);
-      if (path.startsWith("/")) {
-        download.download = path.split("/").at(-1) || "image";
+      if (!inlineImageIndices.has(index)) {
+        images.append(createImageFigure(path, index));
       }
-      download.textContent = `下载图片 ${index + 1}`;
-      figure.append(imageLink, download);
-      images.append(figure);
     }
 
     article.hidden = false;

@@ -28,6 +28,9 @@ const postList = document.querySelector("[data-admin-posts]");
 const imageList = document.querySelector("[data-admin-images]");
 const imageInput = document.querySelector("#image-files");
 const publishImageInput = document.querySelector("#post-image-files");
+const inlineImageInput = document.querySelector("#inline-image-file");
+const inlineImageButton = document.querySelector("[data-insert-inline-image]");
+const postContentInput = document.querySelector("#post-content");
 const selectedImage = document.querySelector("[data-selected-image]");
 const existingPostSelect = document.querySelector("[data-image-post-select]");
 const existingImageSelection = document.querySelector("[data-existing-image-selection]");
@@ -38,12 +41,57 @@ let session = null;
 let pendingExistingImagePath = "";
 let selectedNewImagePaths = [];
 let selectedLocalFiles = [];
+let inlineSelection = null;
+const uploadedInlineImagePaths = new Map();
 
 function setSelectedLocalFiles(files) {
   const transfer = new DataTransfer();
-  for (const file of files) transfer.items.add(file);
+  for (const { file } of files) transfer.items.add(file);
   publishImageInput.files = transfer.files;
   selectedLocalFiles = [...files];
+}
+
+function insertInlineImageMarker(marker) {
+  const content = postContentInput.value;
+  const start = inlineSelection?.start ?? postContentInput.selectionStart;
+  const end = inlineSelection?.end ?? postContentInput.selectionEnd;
+  inlineSelection = null;
+  const before = start > 0 && content[start - 1] !== "\n" ? "\n" : "";
+  const after = end < content.length && content[end] !== "\n" ? "\n" : "";
+  const insertion = `${before}${marker}${after}`;
+  if (content.length - (end - start) + insertion.length > postContentInput.maxLength) {
+    setMessage(publishMessage, "正文已达到字数上限，无法插入图片。", true);
+    return false;
+  }
+  postContentInput.setRangeText(insertion, start, end, "end");
+  postContentInput.focus();
+  return true;
+}
+
+function resolveInlineImageMarkers(content) {
+  const resolved = content.replace(
+    /\{\{image:(local|library):([^}]+)\}\}/g,
+    (marker, type, value) => {
+      let path;
+      if (type === "local") {
+        path = uploadedInlineImagePaths.get(value);
+      } else {
+        try {
+          path = decodeURIComponent(value);
+        } catch {
+          throw new Error("正文中的图库图片标记无效，请重新插入图片。");
+        }
+      }
+      if (!path) {
+        throw new Error("正文中的图片尚未上传完成，请重新选择并插入图片。");
+      }
+      return `{{image:${encodeURIComponent(path)}}}`;
+    },
+  );
+  if (resolved.length > 10000) {
+    throw new Error("插入图片后正文超过 10000 字，请删减部分文字。");
+  }
+  return resolved;
 }
 
 function setMessage(element, message, isError = false) {
@@ -150,6 +198,21 @@ function createImageCard(object) {
     selectedNewImagePaths.push(path);
     updateSelectedImageMessage();
   });
+  const insertInline = document.createElement("button");
+  insertInline.type = "button";
+  insertInline.className = "admin-button admin-button-secondary";
+  insertInline.textContent = "插入到正文";
+  insertInline.addEventListener("click", () => {
+    if (!selectedNewImagePaths.includes(path)) {
+      if (selectedNewImagePaths.length + selectedLocalFiles.length >= 10) {
+        setMessage(publishMessage, "每条动态最多添加 10 张图片。", true);
+        return;
+      }
+      selectedNewImagePaths.push(path);
+      updateSelectedImageMessage();
+    }
+    insertInlineImageMarker(`{{image:library:${encodeURIComponent(path)}}}`);
+  });
   const attachExisting = document.createElement("button");
   attachExisting.type = "button";
   attachExisting.className = "admin-button admin-button-secondary";
@@ -158,7 +221,7 @@ function createImageCard(object) {
     pendingExistingImagePath = path;
     setMessage(existingImageSelection, `已选择图片：${object.name}`);
   });
-  actions.append(download, attach, attachExisting);
+  actions.append(download, attach, insertInline, attachExisting);
   card.append(image, name, actions);
   return card;
 }
@@ -283,26 +346,28 @@ publishForm.addEventListener("submit", async (event) => {
   const uploadedPaths = [];
   try {
     const data = new FormData(publishForm);
-    const files = [...publishImageInput.files];
+    const files = [...selectedLocalFiles];
     if (files.length + selectedNewImagePaths.length > 10) {
       throw new Error("每条动态最多添加 10 张图片。");
     }
     const imagePaths = [...selectedNewImagePaths];
-    for (const [index, file] of files.entries()) {
+    for (const [index, record] of files.entries()) {
       setMessage(publishMessage, `正在上传图片（${index + 1}/${files.length}）…`);
-      const path = await uploadImage(session, file);
+      const path = await uploadImage(session, record.file);
       imagePaths.push(path);
       uploadedPaths.push(path);
+      uploadedInlineImagePaths.set(record.inlineId, path);
     }
     setMessage(publishMessage, "图片上传完成，正在保存动态…");
     await publishPost(session, {
       title: String(data.get("title")).trim(),
-      content: String(data.get("content")).trim(),
+      content: resolveInlineImageMarkers(String(data.get("content")).trim()),
       imagePaths,
     });
     publishForm.reset();
     selectedNewImagePaths = [];
     selectedLocalFiles = [];
+    uploadedInlineImagePaths.clear();
     updateSelectedImageMessage();
     setMessage(publishMessage, "已发布，公开页面会自动显示这条动态。");
     try {
@@ -376,7 +441,7 @@ publishImageInput.addEventListener("change", () => {
   const newlyChosen = [...publishImageInput.files].filter(
     (file) =>
       !selectedLocalFiles.some(
-        (selected) =>
+        ({ file: selected }) =>
           selected.name === file.name &&
           selected.size === file.size &&
           selected.lastModified === file.lastModified,
@@ -388,12 +453,38 @@ publishImageInput.addEventListener("change", () => {
   );
   setSelectedLocalFiles([
     ...selectedLocalFiles,
-    ...newlyChosen.slice(0, availableSlots),
+    ...newlyChosen.slice(0, availableSlots).map((file) => ({
+      file,
+      inlineId: crypto.randomUUID(),
+    })),
   ]);
   if (newlyChosen.length > availableSlots) {
     setMessage(publishMessage, "每条动态最多添加 10 张图片，超出的图片未加入。", true);
   }
   updateSelectedImageMessage();
+});
+
+inlineImageButton.addEventListener("click", () => {
+  inlineSelection = {
+    start: postContentInput.selectionStart,
+    end: postContentInput.selectionEnd,
+  };
+  inlineImageInput.click();
+});
+
+inlineImageInput.addEventListener("change", () => {
+  const [file] = inlineImageInput.files;
+  inlineImageInput.value = "";
+  if (!file) return;
+  if (selectedNewImagePaths.length + selectedLocalFiles.length >= 10) {
+    setMessage(publishMessage, "每条动态最多添加 10 张图片。", true);
+    return;
+  }
+  const record = { file, inlineId: crypto.randomUUID() };
+  if (insertInlineImageMarker(`{{image:local:${record.inlineId}}}`)) {
+    setSelectedLocalFiles([...selectedLocalFiles, record]);
+    updateSelectedImageMessage();
+  }
 });
 
 logoutButton.addEventListener("click", async () => {

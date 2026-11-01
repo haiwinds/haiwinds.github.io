@@ -14,10 +14,15 @@ const PUBLISH_ENDPOINT_KEY = "haiwind-static-publish-endpoint";
 const form = document.querySelector("[data-static-publish-form]");
 const message = document.querySelector("[data-static-publish-message]");
 const imageInput = document.querySelector("#static-post-images");
+const inlineImageInput = document.querySelector("#static-inline-image-file");
+const inlineImageButton = document.querySelector("[data-static-insert-inline-image]");
+const contentInput = document.querySelector("#static-post-content");
 const successLink = document.querySelector("[data-static-publish-link]");
 const endpointInput = document.querySelector("#static-publish-endpoint");
 const usernameInput = document.querySelector("#static-publish-username");
 const passwordInput = document.querySelector("#static-publish-password");
+let selectedImages = [];
+let inlineSelection = null;
 endpointInput.value =
   staticPublishConfig.endpoint ||
   localStorage.getItem(PUBLISH_ENDPOINT_KEY) ||
@@ -42,26 +47,96 @@ function createImageId() {
   return `static-${crypto.randomUUID()}`;
 }
 
+function setSelectedImages(images) {
+  const transfer = new DataTransfer();
+  for (const image of images) transfer.items.add(image.file);
+  imageInput.files = transfer.files;
+  selectedImages = images;
+}
+
+function insertInlineMarker(marker) {
+  const content = contentInput.value;
+  const start = inlineSelection?.start ?? contentInput.selectionStart;
+  const end = inlineSelection?.end ?? contentInput.selectionEnd;
+  inlineSelection = null;
+  const before = start > 0 && content[start - 1] !== "\n" ? "\n" : "";
+  const after = end < content.length && content[end] !== "\n" ? "\n" : "";
+  const insertion = `${before}${marker}${after}`;
+  if (content.length - (end - start) + insertion.length > contentInput.maxLength) {
+    setMessage("正文已达到字数上限，无法插入图片。", true);
+    return false;
+  }
+  contentInput.setRangeText(insertion, start, end, "end");
+  contentInput.focus();
+  return true;
+}
+
+imageInput.addEventListener("change", () => {
+  const newlyChosen = [...imageInput.files].filter(
+    (file) =>
+      !selectedImages.some(
+        ({ file: selected }) =>
+          selected.name === file.name &&
+          selected.size === file.size &&
+          selected.lastModified === file.lastModified,
+      ),
+  );
+  const availableSlots = Math.max(0, MAX_IMAGES - selectedImages.length);
+  setSelectedImages([
+    ...selectedImages,
+    ...newlyChosen.slice(0, availableSlots).map((file) => ({
+      file,
+      inlineId: crypto.randomUUID(),
+    })),
+  ]);
+  if (newlyChosen.length > availableSlots) {
+    setMessage(`每条动态最多选择 ${MAX_IMAGES} 张图片，超出的图片未加入。`, true);
+  }
+});
+
+inlineImageButton.addEventListener("click", () => {
+  inlineSelection = {
+    start: contentInput.selectionStart,
+    end: contentInput.selectionEnd,
+  };
+  inlineImageInput.click();
+});
+
+inlineImageInput.addEventListener("change", () => {
+  const [file] = inlineImageInput.files;
+  inlineImageInput.value = "";
+  if (!file) return;
+  if (selectedImages.length >= MAX_IMAGES) {
+    inlineSelection = null;
+    setMessage(`每条动态最多选择 ${MAX_IMAGES} 张图片。`, true);
+    return;
+  }
+  const image = { file, inlineId: crypto.randomUUID() };
+  if (insertInlineMarker(`{{image:local:${image.inlineId}}}`)) {
+    setSelectedImages([...selectedImages, image]);
+  }
+});
+
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   successLink.hidden = true;
-  const files = [...imageInput.files];
+  const files = [...selectedImages];
   if (files.length > MAX_IMAGES) {
     setMessage(`每条动态最多选择 ${MAX_IMAGES} 张图片。`, true);
     return;
   }
   const invalidFile = files.find(
-    (file) =>
+    ({ file }) =>
       !ALLOWED_IMAGE_TYPES.has(file.type) || file.size > MAX_IMAGE_SIZE,
   );
   if (invalidFile) {
     setMessage(
-      `${invalidFile.name}：仅支持 JPG、PNG、WebP 或 GIF，单张不能超过 10 MB。`,
+      `${invalidFile.file.name}：仅支持 JPG、PNG、WebP 或 GIF，单张不能超过 10 MB。`,
       true,
     );
     return;
   }
-  const totalSize = files.reduce((total, file) => total + file.size, 0);
+  const totalSize = files.reduce((total, { file }) => total + file.size, 0);
   if (totalSize > MAX_TOTAL_IMAGE_SIZE) {
     setMessage("所选图片总大小不能超过 25 MB。", true);
     return;
@@ -84,7 +159,20 @@ form.addEventListener("submit", async (event) => {
 
   const data = new FormData(form);
   const title = String(data.get("title")).trim();
-  const content = String(data.get("content")).trim();
+  let content = String(data.get("content")).trim();
+  let invalidInlineImage = false;
+  content = content.replace(/\{\{image:local:([^}]+)\}\}/g, (marker, inlineId) => {
+    const imageIndex = selectedImages.findIndex((image) => image.inlineId === inlineId);
+    if (imageIndex < 0) {
+      invalidInlineImage = true;
+      return marker;
+    }
+    return `{{image:${imageIndex}}}`;
+  });
+  if (invalidInlineImage) {
+    setMessage("正文中的图片未加入发布列表，请重新选择并插入图片。", true);
+    return;
+  }
   if (!title && !content && !files.length) {
     setMessage("请填写标题或内容，或至少选择一张图片。", true);
     return;
@@ -97,7 +185,8 @@ form.addEventListener("submit", async (event) => {
   try {
     localStorage.setItem(PUBLISH_ENDPOINT_KEY, endpoint.toString());
     const images = [];
-    for (const [index, file] of files.entries()) {
+    for (const [index, record] of files.entries()) {
+      const { file } = record;
       setMessage(`正在准备图片（${index + 1}/${files.length}）…`);
       images.push({
         name: file.name,
@@ -128,6 +217,7 @@ form.addEventListener("submit", async (event) => {
     }
 
     form.reset();
+    selectedImages = [];
     endpointInput.value = endpoint.toString();
     passwordInput.value = "";
     setMessage(
