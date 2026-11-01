@@ -4,7 +4,7 @@ import { supabaseConfig } from "./supabase-config.js?v=20261102-2";
 const SESSION_KEY = "haiwind-supabase-session";
 const PUBLIC_POSTS_CACHE_KEY = "haiwind-public-posts";
 const PUBLIC_POSTS_CACHE_MS = 30000;
-const PUBLIC_IMAGES_CACHE_KEY = "haiwind-public-images";
+const PUBLIC_IMAGES_CACHE_KEY = "haiwind-public-images-v2";
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = new Set([
   "image/jpeg",
@@ -334,6 +334,7 @@ export async function searchPublicPosts(searchTerm) {
 }
 
 export async function listPublicImages() {
+  sessionStorage.removeItem("haiwind-public-images");
   const staticImages = staticPostImages(await getStaticPosts());
   const cachedValue = sessionStorage.getItem(PUBLIC_IMAGES_CACHE_KEY);
   if (cachedValue) {
@@ -352,7 +353,31 @@ export async function listPublicImages() {
 
   if (!isConfigured()) return staticImages;
   try {
-    const images = await listStorageImages("");
+    const pageSize = 1000;
+    const images = [];
+    let offset = 0;
+    while (true) {
+      const query = new URLSearchParams({
+        select: "id,image_path,created_at,post_images(image_path,position)",
+        published: "eq.true",
+        order: "created_at.desc,id.desc",
+        limit: String(pageSize),
+        offset: String(offset),
+      });
+      const posts = (await request(`/rest/v1/posts?${query}`)).map(withPostImages);
+      for (const post of posts) {
+        images.push(
+          ...post.images.map((path, index) => ({
+            id: `${post.id}-${index}`,
+            name: path.split("/").at(-1),
+            path,
+            created_at: post.created_at,
+          })),
+        );
+      }
+      if (posts.length < pageSize) break;
+      offset += pageSize;
+    }
     images.sort((left, right) =>
       (right.created_at || "").localeCompare(left.created_at || ""),
     );
@@ -453,7 +478,7 @@ export async function setPostPublished(session, postId, published) {
     token: session.access_token,
     headers: { Prefer: "return=minimal" },
   });
-  clearPublicPostsCache();
+  clearPublicContentCache();
   return result;
 }
 
@@ -481,7 +506,7 @@ export async function attachPostImage(session, postId, imagePath) {
     token: session.access_token,
     headers: { Prefer: "return=minimal" },
   });
-  clearPublicPostsCache();
+  clearPublicContentCache();
   return result;
 }
 
@@ -509,17 +534,18 @@ export async function publishPost(
     },
     token: session.access_token,
   });
-  clearPublicPostsCache();
+  clearPublicContentCache();
   return result;
 }
 
-function clearPublicPostsCache() {
+function clearPublicContentCache() {
   for (let index = sessionStorage.length - 1; index >= 0; index -= 1) {
     const key = sessionStorage.key(index);
     if (key?.startsWith(PUBLIC_POSTS_CACHE_KEY)) {
       sessionStorage.removeItem(key);
     }
   }
+  sessionStorage.removeItem(PUBLIC_IMAGES_CACHE_KEY);
 }
 
 export async function uploadImage(session, file) {

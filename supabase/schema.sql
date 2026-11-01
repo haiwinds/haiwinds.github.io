@@ -49,6 +49,8 @@ create table if not exists public.post_images (
 create index if not exists post_images_post_position_idx
   on public.post_images (post_id, position);
 
+drop trigger if exists enforce_post_image_limit on public.post_images;
+
 insert into public.post_images (post_id, image_path, position)
 select id, image_path, 0
 from public.posts
@@ -91,7 +93,6 @@ $$;
 
 revoke all on function public.enforce_post_image_limit() from public, anon, authenticated;
 
-drop trigger if exists enforce_post_image_limit on public.post_images;
 create trigger enforce_post_image_limit
   before insert or update of post_id on public.post_images
   for each row execute function public.enforce_post_image_limit();
@@ -215,10 +216,6 @@ set
   allowed_mime_types = excluded.allowed_mime_types;
 
 drop policy if exists "Anyone can list public blog images" on storage.objects;
-create policy "Anyone can list public blog images"
-  on storage.objects for select
-  to anon, authenticated
-  using (bucket_id = 'blog-images');
 
 drop policy if exists "Admins can list their blog images" on storage.objects;
 create policy "Admins can list their blog images"

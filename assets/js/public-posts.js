@@ -2,7 +2,7 @@ import {
   listPublicPosts,
   publicImageUrl,
   searchPublicPosts,
-} from "./supabase.js?v=20261102-2";
+} from "./supabase.js?v=20261102-3";
 
 const feed = document.querySelector("[data-live-feed]");
 const status = document.querySelector("[data-live-feed-status]");
