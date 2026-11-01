@@ -1,7 +1,7 @@
 import {
   getPublicPost,
   publicImageUrl,
-} from "./supabase.js?v=20261102-2";
+} from "./supabase.js?v=20261102-3";
 
 const status = document.querySelector("[data-post-status]");
 const article = document.querySelector("[data-post-content]");
