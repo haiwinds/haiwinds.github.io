@@ -368,8 +368,26 @@ main article img {
   color: #39465c;
   font-size: 1.08rem;
   line-height: 1.85;
+  margin: 1.08em 0;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
+}
+
+.post-detail-body figure {
+  margin: 1.5rem 0;
+  white-space: normal;
+}
+
+.admin-inline-image-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin: 0.65rem 0 1rem;
+}
+
+.admin-inline-image-actions .admin-hint {
+  margin: 0;
 }
 
 .post-detail-gallery {

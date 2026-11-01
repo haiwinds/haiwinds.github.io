@@ -395,6 +395,15 @@ async function handlePublish(request, env, origin) {
     imageFiles.push({ path, bytes });
   }
 
+  post.content = post.content.replace(/\{\{image:(\d+)\}\}/g, (marker, value) => {
+    const path = post.images[Number(value)];
+    if (!path) throw createError("正文引用了不存在的图片。");
+    return `{{image:${encodeURIComponent(path)}}}`;
+  });
+  if (post.content.length > 10000) {
+    throw createError("插入图片后正文超过 10000 字，请删减部分文字。");
+  }
+
   const commit = await publishCommit(env, post, imageFiles);
   return jsonResponse(
     {
