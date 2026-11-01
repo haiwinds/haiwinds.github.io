@@ -225,7 +225,6 @@ main article img {
   box-shadow: 0 10px 30px rgba(23, 32, 51, 0.045);
   min-width: 0;
   overflow: hidden;
-  padding: 1.35rem;
   text-decoration: none;
   transition: transform 180ms ease, box-shadow 180ms ease;
 }
@@ -239,33 +238,28 @@ main article img {
 .live-post h3 {
   color: var(--ink);
   font-size: 1.1rem;
-  margin: 0 0 0.2rem;
+  margin: 0 0 0.45rem;
 }
 
 .live-post-date {
   color: var(--muted);
+  display: block;
   font-size: 0.8rem;
 }
 
-.live-post-content {
-  color: #39465c;
-  margin: 0.9rem 0 0;
-  overflow-wrap: anywhere;
-  white-space: pre-wrap;
+.live-post-meta {
+  padding: 1.1rem 1.2rem 1.25rem;
 }
 
 .live-post-images {
   aspect-ratio: 4 / 3;
-  border-radius: 10px;
   box-sizing: border-box;
   display: grid;
   gap: 0.35rem;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-rows: repeat(2, minmax(0, 1fr));
-  height: clamp(180px, 30vw, 360px);
-  margin-top: 1rem;
+  height: auto;
   max-height: 360px;
-  max-width: 100%;
   min-width: 0;
   overflow: hidden;
   position: relative;
@@ -295,10 +289,15 @@ main article img {
 }
 
 .live-post-image-error {
+  align-items: center;
+  background: #f3f2ef;
   color: var(--muted);
-  display: block;
+  display: grid;
   font-size: 0.82rem;
-  margin-top: 0.75rem;
+  grid-column: 1 / -1;
+  grid-row: 1 / -1;
+  justify-items: center;
+  text-align: center;
 }
 
 .live-post-image-more {
@@ -310,14 +309,6 @@ main article img {
   bottom: 0.5rem;
   right: 0.5rem;
   position: absolute;
-}
-
-.live-post-more {
-  color: var(--accent);
-  display: inline-block;
-  font-size: 0.88rem;
-  font-weight: 650;
-  margin-top: 1rem;
 }
 
 .post-detail-main {
@@ -838,7 +829,6 @@ footer a {
   border-radius: 6px;
   box-shadow: 0 12px 32px rgba(20, 20, 20, 0.045);
   color: #171717;
-  padding: 1.2rem;
 }
 
 .home-updates .live-post:hover {
@@ -847,38 +837,14 @@ footer a {
 }
 
 .home-updates .live-post-images {
-  margin: -1.2rem -1.2rem 1rem;
   border-radius: 3px 3px 0 0;
-  width: calc(100% + 2.4rem);
-}
-
-.home-updates .live-post-images img {
-  height: 100%;
 }
 
 .home-updates .live-post h3 {
   color: #171717;
   font-family: "Noto Serif SC", "Songti SC", Georgia, serif;
   font-size: 1.2rem;
-  margin: 0.55rem 0 0;
-}
-
-.home-updates .live-post-date {
-  color: #888;
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-  font-size: 0.77rem;
-}
-
-.home-updates .live-post-content {
-  color: #585858;
-  font-size: 0.95rem;
-  margin-top: 0.65rem;
-}
-
-.home-updates .live-post-more {
-  color: #676767;
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-  font-size: 0.82rem;
+  margin: 0 0 0.45rem;
 }
 
 @media (max-width: 760px) {
