@@ -8,7 +8,7 @@
     <title>博客动态 | Haiwind</title>
     <link rel="icon" type="image/png" href="/images/haiwind-favicon.png?v=20261027-1" sizes="64x64">
     <script src="/assets/js/site-theme.js?v=20261102-2"></script>
-    <link rel="stylesheet" href="/site.css?v=20261102-7">
+    <link rel="stylesheet" href="/site.css?v=20261102-9">
     <link rel="stylesheet" href="/admin/admin.css">
     <script type="module" src="/assets/js/post-detail.js?v=20261102-4"></script>
   </head>
@@ -17,7 +17,11 @@
       <a class="admin-brand" href="/">Haiwind <span>博客动态</span></a>
       <nav class="post-detail-nav" aria-label="页面导航">
         <button class="theme-toggle theme-toggle-page" data-theme-toggle type="button" aria-label="切换到夜间模式" aria-pressed="false">
-          <span class="theme-toggle-icon" aria-hidden="true"></span>
+          <svg class="theme-toggle-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <circle class="theme-icon-sun" cx="12" cy="12" r="4"></circle>
+            <path class="theme-icon-sun" d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"></path>
+            <path class="theme-icon-moon" d="M20.2 15.6A8.5 8.5 0 0 1 8.4 3.8 8.5 8.5 0 1 0 20.2 15.6Z"></path>
+          </svg>
         </button>
         <a class="admin-back-link" href="/post/">返回动态列表</a>
         <a class="post-detail-admin-link" href="/admin/">管理博客</a>

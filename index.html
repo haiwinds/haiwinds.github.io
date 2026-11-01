@@ -9,7 +9,7 @@
     <link rel="icon" type="image/png" href="/images/haiwind-favicon.png?v=20261027-1" sizes="64x64">
     <script src="/assets/js/site-theme.js?v=20261102-2"></script>
     <link rel="stylesheet" href="/ananke/css/main.min.d05fb5f317fcf33b3a52936399bdf6f47dc776516e1692e412ec7d76f4a5faa2.css">
-    <link rel="stylesheet" href="/site.css?v=20261102-7">
+    <link rel="stylesheet" href="/site.css?v=20261102-9">
     <script type="module" src="/assets/js/site-shell.js?v=20261026-1"></script>
     <script type="module" src="/assets/js/public-posts.js?v=20261102-3"></script>
   </head>
@@ -41,7 +41,11 @@
         <section class="home-hero" aria-labelledby="home-title">
           <div class="page-actions">
             <button class="theme-toggle" data-theme-toggle type="button" aria-label="切换到夜间模式" aria-pressed="false">
-              <span class="theme-toggle-icon" aria-hidden="true"></span>
+              <svg class="theme-toggle-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <circle class="theme-icon-sun" cx="12" cy="12" r="4"></circle>
+                <path class="theme-icon-sun" d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"></path>
+                <path class="theme-icon-moon" d="M20.2 15.6A8.5 8.5 0 0 1 8.4 3.8 8.5 8.5 0 1 0 20.2 15.6Z"></path>
+              </svg>
             </button>
             <form class="page-search" data-site-search role="search">
               <label class="visually-hidden" for="home-search-input">搜索动态</label>
