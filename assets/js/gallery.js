@@ -1,7 +1,7 @@
 import {
   listPublicImages,
   publicImageUrl,
-} from "./supabase.js?v=20261102-1";
+} from "./supabase.js?v=20261102-2";
 
 const grid = document.querySelector("[data-gallery-grid]");
 const status = document.querySelector("[data-gallery-status]");
