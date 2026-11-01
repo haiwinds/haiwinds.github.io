@@ -8,9 +8,9 @@
     <title>博客管理 | Haiwind</title>
     <link rel="icon" type="image/png" href="/images/haiwind-favicon.png?v=20261027-1" sizes="64x64">
     <link rel="stylesheet" href="/site.css?v=20261102-5">
-    <link rel="stylesheet" href="/admin/admin.css?v=20261025-3">
-    <script type="module" src="/assets/js/static-publish.js?v=20261102-1"></script>
-    <script type="module" src="/assets/js/admin.js?v=20261102-3"></script>
+    <link rel="stylesheet" href="/admin/admin.css?v=20261102-2">
+    <script type="module" src="/assets/js/static-publish.js?v=20261102-2"></script>
+    <script type="module" src="/assets/js/admin.js?v=20261102-4"></script>
   </head>
   <body class="admin-page">
     <header class="admin-header">
@@ -38,42 +38,42 @@
         </form>
       </section>
 
-      <section class="admin-panel static-publish-panel">
-        <div class="admin-section-heading">
-          <div>
-            <p class="admin-eyebrow">GITHUB PAGES BACKUP</p>
-            <h2>Supabase 不可用时的备用发布</h2>
-          </div>
+      <details class="admin-panel static-publish-panel" data-static-publish-panel>
+        <summary>
+          <span class="admin-eyebrow">GITHUB PAGES BACKUP</span>
+          <span class="static-publish-summary-title">备用发布（Supabase 不可用时）</span>
+        </summary>
+        <div class="static-publish-content">
+          <p class="admin-hint">通过 Cloudflare Worker 安全提交到 GitHub。首次部署后填入 Worker 地址；网页不会保存发布账号和密码。</p>
+          <form data-static-publish-form>
+            <label for="static-publish-endpoint">Cloudflare Worker 地址</label>
+            <input id="static-publish-endpoint" name="endpoint" type="url" autocomplete="url" required placeholder="https://haiwind-static-publisher.你的账号.workers.dev">
+            <label for="static-publish-username">备用发布账号</label>
+            <input id="static-publish-username" name="username" type="text" autocomplete="username" required>
+            <label for="static-publish-password">备用发布密码</label>
+            <input id="static-publish-password" name="password" type="password" autocomplete="current-password" required>
+            <label for="static-post-title">标题 <span>可选</span></label>
+            <input id="static-post-title" name="title" type="text" maxlength="120" placeholder="动态标题">
+            <label for="static-post-content">内容 <span>可选</span></label>
+            <textarea id="static-post-content" name="content" rows="4" maxlength="10000" placeholder="写下你的新动态…"></textarea>
+            <div class="admin-inline-image-actions">
+              <button class="admin-button admin-button-secondary" type="button" data-static-insert-inline-image>在光标处插入图片</button>
+              <input id="static-inline-image-file" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
+              <span class="admin-hint">选择图片后会插入到正文当前位置，也会加入动态图片。</span>
+            </div>
+            <label class="admin-file-picker admin-post-file-picker" for="static-post-images">
+              <span>选择图片（最多 10 张）</span>
+              <input id="static-post-images" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple>
+            </label>
+            <div class="admin-form-actions">
+              <button class="admin-button admin-button-primary" type="submit">直接发布</button>
+              <p class="admin-message" data-static-publish-message role="status" aria-live="polite"></p>
+            </div>
+          </form>
+          <p class="admin-hint">单张图片最大 10 MB，单条动态最多 10 张图片，图片总大小不超过 25 MB。Cloudflare Worker 尚未部署前，直接发布暂不可用。</p>
+          <a class="admin-button admin-button-secondary static-publish-link" data-static-publish-link hidden target="_blank" rel="noopener noreferrer">查看 GitHub 提交</a>
         </div>
-        <p class="admin-hint">通过 Cloudflare Worker 安全提交到 GitHub。首次部署后填入 Worker 地址；网页不会保存发布账号和密码。</p>
-        <form data-static-publish-form>
-          <label for="static-publish-endpoint">Cloudflare Worker 地址</label>
-          <input id="static-publish-endpoint" name="endpoint" type="url" autocomplete="url" required placeholder="https://haiwind-static-publisher.你的账号.workers.dev">
-          <label for="static-publish-username">备用发布账号</label>
-          <input id="static-publish-username" name="username" type="text" autocomplete="username" required>
-          <label for="static-publish-password">备用发布密码</label>
-          <input id="static-publish-password" name="password" type="password" autocomplete="current-password" required>
-          <label for="static-post-title">标题 <span>可选</span></label>
-          <input id="static-post-title" name="title" type="text" maxlength="120" placeholder="动态标题">
-          <label for="static-post-content">内容 <span>可选</span></label>
-          <textarea id="static-post-content" name="content" rows="4" maxlength="10000" placeholder="写下动态内容…"></textarea>
-          <div class="admin-inline-image-actions">
-            <button class="admin-button admin-button-secondary" type="button" data-static-insert-inline-image>在光标处插入图片</button>
-            <input id="static-inline-image-file" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
-            <span class="admin-hint">选择图片后会插入到正文当前位置，也会加入动态图片。</span>
-          </div>
-          <label class="admin-file-picker admin-post-file-picker" for="static-post-images">
-            <span>选择图片（最多 10 张）</span>
-            <input id="static-post-images" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple>
-          </label>
-          <div class="admin-form-actions">
-            <button class="admin-button admin-button-primary" type="submit">直接发布</button>
-            <p class="admin-message" data-static-publish-message role="status" aria-live="polite"></p>
-          </div>
-        </form>
-        <p class="admin-hint">单张图片最大 10 MB，单条动态最多 10 张图片，图片总大小不超过 25 MB。Cloudflare Worker 尚未部署前，直接发布暂不可用。</p>
-        <a class="admin-button admin-button-secondary static-publish-link" data-static-publish-link hidden target="_blank" rel="noopener noreferrer">查看 GitHub 提交</a>
-      </section>
+      </details>
 
       <section class="admin-dashboard" data-dashboard hidden>
         <div class="admin-toolbar">
@@ -111,6 +111,7 @@
             </div>
           </form>
         </section>
+        <div data-static-publish-dashboard-slot></div>
 
         <section class="admin-panel">
           <div class="admin-section-heading">

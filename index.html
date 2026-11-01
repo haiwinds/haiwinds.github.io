@@ -7,8 +7,9 @@
     <meta name="theme-color" content="#0b0b0b">
     <title>Haiwind の Blog</title>
     <link rel="icon" type="image/png" href="/images/haiwind-favicon.png?v=20261027-1" sizes="64x64">
+    <script src="/assets/js/site-theme.js?v=20261102-2"></script>
     <link rel="stylesheet" href="/ananke/css/main.min.d05fb5f317fcf33b3a52936399bdf6f47dc776516e1692e412ec7d76f4a5faa2.css">
-    <link rel="stylesheet" href="/site.css?v=20261102-4">
+    <link rel="stylesheet" href="/site.css?v=20261102-7">
     <script type="module" src="/assets/js/site-shell.js?v=20261026-1"></script>
     <script type="module" src="/assets/js/public-posts.js?v=20261102-3"></script>
   </head>
@@ -38,16 +39,21 @@
 
       <main class="home-main">
         <section class="home-hero" aria-labelledby="home-title">
-          <form class="page-search" data-site-search role="search">
-            <label class="visually-hidden" for="home-search-input">搜索动态</label>
-            <input id="home-search-input" name="q" type="search" placeholder="搜索文章、照片…" autocomplete="off">
-            <button type="submit" aria-label="搜索">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <circle cx="10.8" cy="10.8" r="6.3"></circle>
-                <path d="m15.5 15.5 4.2 4.2"></path>
-              </svg>
+          <div class="page-actions">
+            <button class="theme-toggle" data-theme-toggle type="button" aria-label="切换到夜间模式" aria-pressed="false">
+              <span class="theme-toggle-icon" aria-hidden="true"></span>
             </button>
-          </form>
+            <form class="page-search" data-site-search role="search">
+              <label class="visually-hidden" for="home-search-input">搜索动态</label>
+              <input id="home-search-input" name="q" type="search" placeholder="搜索文章、照片…" autocomplete="off">
+              <button type="submit" aria-label="搜索">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="10.8" cy="10.8" r="6.3"></circle>
+                  <path d="m15.5 15.5 4.2 4.2"></path>
+                </svg>
+              </button>
+            </form>
+          </div>
           <div class="home-hero-content">
             <p class="home-eyebrow">BLOG / PHOTOS</p>
             <h1 id="home-title">记录生活与光影</h1>

@@ -16,6 +16,8 @@ import {
 
 const loginPanel = document.querySelector("[data-login-panel]");
 const dashboard = document.querySelector("[data-dashboard]");
+const staticPublishPanel = document.querySelector("[data-static-publish-panel]");
+const staticPublishDashboardSlot = document.querySelector("[data-static-publish-dashboard-slot]");
 const loginForm = document.querySelector("[data-login-form]");
 const publishForm = document.querySelector("[data-publish-form]");
 const uploadForm = document.querySelector("[data-upload-form]");
@@ -309,6 +311,7 @@ async function showDashboard(currentSession) {
 
   loginPanel.hidden = true;
   dashboard.hidden = false;
+  staticPublishDashboardSlot.append(staticPublishPanel);
   adminEmail.textContent = session.user.email || "管理员";
   setMessage(pageMessage, "");
   try {
@@ -492,6 +495,7 @@ logoutButton.addEventListener("click", async () => {
   try {
     await signOut();
     session = null;
+    loginPanel.after(staticPublishPanel);
     dashboard.hidden = true;
     loginPanel.hidden = false;
     loginForm.reset();

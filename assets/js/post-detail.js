@@ -45,14 +45,7 @@ function createImageFigure(path, index, inline = false) {
     }
   }, { once: true });
   imageLink.append(image);
-  const download = document.createElement("a");
-  download.className = "admin-button admin-button-secondary post-image-download";
-  download.href = publicImageUrl(path, true);
-  if (path.startsWith("/")) {
-    download.download = path.split("/").at(-1) || "image";
-  }
-  download.textContent = `下载图片 ${index + 1}`;
-  figure.append(imageLink, download);
+  figure.append(imageLink);
   return figure;
 }
 
