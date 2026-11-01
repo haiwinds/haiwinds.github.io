@@ -748,52 +748,59 @@ footer a {
 .theme-toggle {
   align-items: center;
   appearance: none;
-  background: rgba(8, 9, 10, 0.18);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 999px;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
   color: #fff;
   cursor: pointer;
   display: inline-flex;
   flex: 0 0 auto;
-  font: 600 0.78rem/1 Inter, ui-sans-serif, system-ui, sans-serif;
-  gap: 0.45rem;
   justify-content: center;
   min-height: 42px;
-  padding: 0 0.8rem;
-  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+  min-width: 42px;
+  padding: 0;
+  transition: color 160ms ease;
 }
 
 .theme-toggle:hover,
 .theme-toggle:focus-visible {
-  background: rgba(8, 9, 10, 0.42);
-  border-color: rgba(255, 255, 255, 0.72);
-  color: #fff;
+  color: rgba(255, 255, 255, 0.72);
 }
 
 .theme-toggle:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.7);
-  outline-offset: 2px;
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
 }
 
-.theme-toggle-icon::before {
-  content: "☀";
+.theme-toggle-icon {
+  fill: none;
+  height: 20px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+  width: 20px;
 }
 
-html[data-theme="dark"] .theme-toggle-icon::before {
-  content: "☾";
+.theme-icon-moon {
+  display: none;
+}
+
+html[data-theme="dark"] .theme-icon-sun {
+  display: none;
+}
+
+html[data-theme="dark"] .theme-icon-moon {
+  display: block;
 }
 
 .theme-toggle-page {
-  background: transparent;
-  border-color: var(--line);
   color: var(--ink);
 }
 
 .theme-toggle-page:hover,
 .theme-toggle-page:focus-visible {
-  background: var(--line);
-  border-color: var(--line);
-  color: var(--ink);
+  color: var(--accent);
 }
 
 .theme-toggle-page:focus-visible {
