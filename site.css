@@ -224,6 +224,7 @@ main article img {
   border-radius: 16px;
   box-shadow: 0 10px 30px rgba(23, 32, 51, 0.045);
   min-width: 0;
+  overflow: hidden;
   padding: 1.35rem;
   text-decoration: none;
   transition: transform 180ms ease, box-shadow 180ms ease;
@@ -264,6 +265,7 @@ main article img {
   height: clamp(180px, 30vw, 360px);
   margin-top: 1rem;
   max-height: 360px;
+  max-width: 100%;
   min-width: 0;
   overflow: hidden;
   position: relative;
