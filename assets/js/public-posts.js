@@ -44,7 +44,7 @@ function renderPost(post) {
   card.className = "live-post";
   if (post.images.length) card.classList.add("has-image");
   card.href = `/post/view/?id=${encodeURIComponent(post.id)}`;
-  card.setAttribute("aria-label", `阅读全文：${post.title || "动态"}`);
+  card.setAttribute("aria-label", `查看动态：${post.title || "动态"}`);
 
   const heading = document.createElement("h3");
   heading.textContent = post.title || "动态";
@@ -63,12 +63,10 @@ function renderPost(post) {
         more.hidden = hiddenImages <= 0;
       }
       if (remaining === 0) {
-        gallery.remove();
-        card.classList.remove("has-image");
         const fallback = document.createElement("span");
         fallback.className = "live-post-image-error";
         fallback.textContent = "图片暂时无法加载";
-        card.insertBefore(fallback, heading);
+        gallery.replaceChildren(fallback);
       }
     };
     for (const [index, path] of post.images.entries()) {
@@ -91,8 +89,6 @@ function renderPost(post) {
     card.append(gallery);
   }
 
-  card.append(heading);
-
   const date = document.createElement("time");
   date.className = "live-post-date";
   date.dateTime = post.created_at;
@@ -100,17 +96,11 @@ function renderPost(post) {
     dateStyle: "medium",
     timeStyle: "short",
   });
-  card.append(date);
 
-  const content = document.createElement("p");
-  content.className = "live-post-content";
-  content.textContent = post.content;
-  card.append(content);
-
-  const more = document.createElement("span");
-  more.className = "live-post-more";
-  more.textContent = "查看动态 →";
-  card.append(more);
+  const meta = document.createElement("div");
+  meta.className = "live-post-meta";
+  meta.append(heading, date);
+  card.append(meta);
 
   return card;
 }
