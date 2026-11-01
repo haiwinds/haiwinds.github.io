@@ -15,7 +15,7 @@ function filterImages() {
   const searchTerm = searchInput.value.trim().toLocaleLowerCase("zh-CN");
   let visibleImages = 0;
   for (const card of grid.children) {
-    const matches = card.textContent.toLocaleLowerCase("zh-CN").includes(searchTerm);
+    const matches = card.dataset.searchText.includes(searchTerm);
     card.hidden = !matches;
     if (matches) visibleImages += 1;
   }
@@ -39,6 +39,7 @@ function formatDate(value) {
 function createImageCard(image) {
   const link = document.createElement("a");
   link.className = "gallery-card";
+  link.dataset.searchText = `${image.name || ""} ${formatDate(image.created_at)}`.toLocaleLowerCase("zh-CN");
   link.href = publicImageUrl(image.path);
   link.target = "_blank";
   link.rel = "noopener noreferrer";
@@ -52,21 +53,17 @@ function createImageCard(image) {
   img.loading = "lazy";
   preview.append(img);
 
-  const caption = document.createElement("div");
-  caption.className = "gallery-card-caption";
-  const name = document.createElement("span");
-  name.textContent = image.name || "图片";
-  caption.append(name);
-
   const dateText = formatDate(image.created_at);
+  let date;
   if (dateText) {
-    const date = document.createElement("time");
+    date = document.createElement("time");
+    date.className = "gallery-card-date";
     date.dateTime = image.created_at;
     date.textContent = dateText;
-    caption.append(date);
   }
 
-  link.append(preview, caption);
+  link.append(preview);
+  if (date) link.append(date);
   return link;
 }
 
