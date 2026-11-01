@@ -458,7 +458,9 @@ footer a {
 .home-shell {
   display: grid;
   grid-template-columns: 308px minmax(0, 1fr);
-  min-height: 100vh;
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .home-sidebar {
@@ -468,7 +470,10 @@ footer a {
   color: #eee;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  box-sizing: border-box;
+  height: 100vh;
+  min-height: 0;
+  overflow-y: auto;
   padding: 2.25rem 1.8rem 1.4rem;
   position: sticky;
   top: 0;
@@ -521,7 +526,7 @@ footer a {
   display: flex;
   flex-direction: column;
   gap: 0.42rem;
-  margin-top: 4.6rem;
+  margin-top: clamp(1.5rem, 8vh, 4.6rem);
   width: 100%;
 }
 
@@ -573,7 +578,11 @@ footer a {
 }
 
 .home-main {
+  height: 100vh;
   min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .home-hero {
@@ -850,15 +859,24 @@ footer a {
 @media (max-width: 760px) {
   .home-shell {
     display: block;
+    height: auto;
+    overflow: visible;
   }
 
   .home-sidebar {
     align-items: center;
     flex-direction: row;
     flex-wrap: wrap;
+    height: auto;
     min-height: auto;
+    overflow: visible;
     padding: 0.8rem 1rem;
     position: relative;
+  }
+
+  .home-main {
+    height: auto;
+    overflow: visible;
   }
 
   .home-profile {
