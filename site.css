@@ -1182,6 +1182,51 @@ html[data-theme="dark"] .theme-icon-moon {
   color: var(--site-ink);
 }
 
+.about-social {
+  align-items: center;
+  border-top: 1px solid var(--site-card-line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  margin-top: 1.8rem;
+  padding-top: 1.35rem;
+}
+
+.about-social a {
+  align-items: center;
+  background: var(--site-background);
+  border: 1px solid var(--site-card-line);
+  border-radius: 999px;
+  color: var(--site-ink);
+  display: inline-flex;
+  font: 600 0.88rem/1 Inter, ui-sans-serif, system-ui, sans-serif;
+  gap: 0.55rem;
+  min-height: 42px;
+  padding: 0 0.9rem;
+  text-decoration: none;
+  transition: border-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.about-social a:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.about-social svg {
+  fill: currentColor;
+  height: 18px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+  width: 18px;
+}
+
+.about-social a:nth-child(2) svg {
+  fill: none;
+}
+
 .gallery-section {
   margin: 0 auto;
   max-width: 1400px;
