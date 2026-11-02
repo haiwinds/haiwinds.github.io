@@ -34,6 +34,8 @@ const inlineImageInput = document.querySelector("#inline-image-file");
 const inlineImageButton = document.querySelector("[data-insert-inline-image]");
 const postContentInput = document.querySelector("#post-content");
 const selectedImage = document.querySelector("[data-selected-image]");
+const selectedImageCount = document.querySelector("[data-selected-image-count]");
+const selectedImageList = document.querySelector("[data-selected-image-list]");
 const existingPostSelect = document.querySelector("[data-image-post-select]");
 const existingImageSelection = document.querySelector("[data-existing-image-selection]");
 const attachExistingImageButton = document.querySelector("[data-attach-existing-image]");
@@ -104,8 +106,54 @@ function setMessage(element, message, isError = false) {
 function updateSelectedImageMessage() {
   const localCount = publishImageInput.files.length;
   const total = localCount + selectedNewImagePaths.length;
-  selectedImage.textContent = `${selectedNewImagePaths.length} 张图库图片、${localCount} 张本地图片（共 ${total}/10 张）。`;
+  selectedImageCount.textContent = `${selectedNewImagePaths.length} 张图库图片、${localCount} 张本地图片（共 ${total}/10 张）。`;
   selectedImage.hidden = total === 0;
+  selectedImageList.replaceChildren();
+
+  for (const [index, path] of selectedNewImagePaths.entries()) {
+    const item = document.createElement("div");
+    item.className = "admin-selected-image-item";
+    const name = document.createElement("span");
+    name.textContent = `图库图片 ${index + 1}：${path.split("/").at(-1)}`;
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "admin-selected-image-remove";
+    remove.setAttribute("aria-label", `取消选择图库图片 ${path.split("/").at(-1)}`);
+    remove.textContent = "×";
+    remove.addEventListener("click", () => {
+      selectedNewImagePaths = selectedNewImagePaths.filter((selectedPath) => selectedPath !== path);
+      postContentInput.value = postContentInput.value.replaceAll(
+        `{{image:library:${encodeURIComponent(path)}}}`,
+        "",
+      );
+      updateSelectedImageMessage();
+    });
+    item.append(name, remove);
+    selectedImageList.append(item);
+  }
+
+  for (const record of selectedLocalFiles) {
+    const item = document.createElement("div");
+    item.className = "admin-selected-image-item";
+    const name = document.createElement("span");
+    name.textContent = `本地图片：${record.file.name}`;
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "admin-selected-image-remove";
+    remove.setAttribute("aria-label", `取消选择本地图片 ${record.file.name}`);
+    remove.textContent = "×";
+    remove.addEventListener("click", () => {
+      setSelectedLocalFiles(selectedLocalFiles.filter((selected) => selected !== record));
+      uploadedInlineImagePaths.delete(record.inlineId);
+      postContentInput.value = postContentInput.value.replaceAll(
+        `{{image:local:${record.inlineId}}}`,
+        "",
+      );
+      updateSelectedImageMessage();
+    });
+    item.append(name, remove);
+    selectedImageList.append(item);
+  }
 }
 
 function formatDate(value) {
