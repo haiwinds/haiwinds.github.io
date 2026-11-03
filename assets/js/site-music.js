@@ -12,13 +12,6 @@ player.className = "sidebar-music";
 player.setAttribute("aria-label", "音乐播放器");
 player.dataset.sourceType = "";
 player.innerHTML = `
-  <div class="sidebar-music-heading">
-    <span class="sidebar-music-note" aria-hidden="true">♫</span>
-    <h2>音乐</h2>
-    <button class="sidebar-music-list-toggle" type="button" aria-expanded="false" aria-controls="sidebar-music-list">
-      歌单列表
-    </button>
-  </div>
   <p class="sidebar-music-current" data-music-current>正在加载歌单…</p>
   <div class="sidebar-music-controls" data-music-controls></div>
   <div class="sidebar-music-transport" data-music-transport></div>
@@ -32,17 +25,23 @@ const controls = player.querySelector("[data-music-controls]");
 const transport = player.querySelector("[data-music-transport]");
 const trackList = player.querySelector("[data-music-list]");
 const status = player.querySelector("[data-music-status]");
-const listToggle = player.querySelector(".sidebar-music-list-toggle");
 trackList.id = "sidebar-music-list";
 transport.hidden = true;
 trackList.hidden = true;
-listToggle.hidden = true;
-listToggle.addEventListener("click", () => {
-  const expanded = listToggle.getAttribute("aria-expanded") !== "true";
-  listToggle.setAttribute("aria-expanded", String(expanded));
-  listToggle.textContent = expanded ? "收起歌单" : "歌单列表";
+let playlistExpanded = false;
+function setPlaylistExpanded(expanded) {
+  playlistExpanded = expanded;
   trackList.hidden = !expanded;
-});
+  for (const button of player.querySelectorAll(".sidebar-music-embed-list-toggle")) {
+    button.setAttribute("aria-expanded", String(expanded));
+    button.setAttribute("aria-label", expanded ? "收起本站歌单" : "打开本站歌单");
+    button.title = expanded ? "收起本站歌单" : "打开本站歌单";
+  }
+  for (const button of player.querySelectorAll(".sidebar-music-local-list-toggle")) {
+    button.setAttribute("aria-expanded", String(expanded));
+    button.textContent = expanded ? "收起歌单" : "歌单列表";
+  }
+}
 let tracks = [];
 let currentIndex = 0;
 let activeAudio = null;
@@ -167,7 +166,17 @@ function showTrack(index, { autoplay = false } = {}) {
     frame.allow = "autoplay";
     const frameViewport = document.createElement("div");
     frameViewport.className = "sidebar-music-embed-viewport";
+    const embedListToggle = document.createElement("button");
+    embedListToggle.type = "button";
+    embedListToggle.className = "sidebar-music-embed-list-toggle";
+    embedListToggle.setAttribute("aria-expanded", String(playlistExpanded));
+    embedListToggle.setAttribute("aria-label", "打开本站歌单");
+    embedListToggle.title = "打开本站歌单";
+    embedListToggle.addEventListener("click", () => {
+      setPlaylistExpanded(!playlistExpanded);
+    });
     frameViewport.append(frame);
+    frameViewport.append(embedListToggle);
     controls.append(frameViewport);
   } else {
     currentTitle.hidden = true;
@@ -206,6 +215,14 @@ function showTrack(index, { autoplay = false } = {}) {
     progress.setAttribute("aria-label", `播放进度：${track.title}`);
     const actions = document.createElement("div");
     actions.className = "sidebar-music-local-actions";
+    const localListToggle = document.createElement("button");
+    localListToggle.type = "button";
+    localListToggle.className = "sidebar-music-local-list-toggle";
+    localListToggle.textContent = "歌单列表";
+    localListToggle.setAttribute("aria-expanded", String(playlistExpanded));
+    localListToggle.addEventListener("click", () => {
+      setPlaylistExpanded(!playlistExpanded);
+    });
     const elapsed = document.createElement("span");
     elapsed.textContent = "0:00";
     const duration = document.createElement("span");
@@ -237,10 +254,10 @@ function showTrack(index, { autoplay = false } = {}) {
     audio.addEventListener("error", () => {
       status.textContent = `音频无法播放，请检查文件路径：${track.title}`;
     }, { once: true });
-    actions.append(time, playPause, speedButton);
-    body.append(title, progress, actions);
+    actions.append(playPause, speedButton);
+    body.append(title, progress, time, actions);
     localPlayer.append(cover, body);
-    controls.append(localPlayer, audio);
+    controls.append(localPlayer, audio, localListToggle);
     if (autoplay) {
       audio.play().catch(() => {
         status.textContent = "浏览器阻止了自动播放，请点击播放按钮。";
@@ -254,8 +271,7 @@ function showTrack(index, { autoplay = false } = {}) {
     button.setAttribute("aria-current", selected ? "true" : "false");
   }
   trackList.hidden = true;
-  listToggle.setAttribute("aria-expanded", "false");
-  listToggle.textContent = "歌单列表";
+  setPlaylistExpanded(false);
   status.textContent = "";
 }
 
@@ -268,7 +284,9 @@ async function loadTracks() {
       currentTitle.hidden = false;
       return;
     }
-    listToggle.hidden = false;
+    player.querySelectorAll(".sidebar-music-embed-list-toggle").forEach((button) => {
+      button.hidden = tracks.length < 2;
+    });
 
     for (const [index, track] of tracks.entries()) {
       const item = document.createElement("li");
