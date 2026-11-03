@@ -15,6 +15,9 @@ player.innerHTML = `
   <div class="sidebar-music-heading">
     <span class="sidebar-music-note" aria-hidden="true">♫</span>
     <h2>音乐</h2>
+    <button class="sidebar-music-list-toggle" type="button" aria-expanded="false" aria-controls="sidebar-music-list">
+      歌单列表
+    </button>
   </div>
   <p class="sidebar-music-current" data-music-current>正在加载歌单…</p>
   <div class="sidebar-music-controls" data-music-controls></div>
@@ -29,13 +32,22 @@ const controls = player.querySelector("[data-music-controls]");
 const transport = player.querySelector("[data-music-transport]");
 const trackList = player.querySelector("[data-music-list]");
 const status = player.querySelector("[data-music-status]");
+const listToggle = player.querySelector(".sidebar-music-list-toggle");
+trackList.id = "sidebar-music-list";
 transport.hidden = true;
 trackList.hidden = true;
+listToggle.hidden = true;
+listToggle.addEventListener("click", () => {
+  const expanded = listToggle.getAttribute("aria-expanded") !== "true";
+  listToggle.setAttribute("aria-expanded", String(expanded));
+  listToggle.textContent = expanded ? "收起歌单" : "歌单列表";
+  trackList.hidden = !expanded;
+});
 let tracks = [];
 let currentIndex = 0;
 let activeAudio = null;
 let playbackRate = 1;
-const playbackRates = [0.75, 1, 1.25, 1.5, 2];
+const playbackRates = [0.75, 0.8, 0.9, 1, 1.25, 1.5, 2];
 
 const icons = {
   play: '<path d="m8 5 12 7-12 7z"/>',
@@ -77,7 +89,13 @@ speedButton.addEventListener("click", () => {
   speedButton.textContent = `${playbackRate}×`;
   speedButton.setAttribute("aria-label", `播放速度 ${playbackRate} 倍`);
 });
-transport.append(playPause, speedButton);
+
+function formatTime(seconds) {
+  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+  return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
+}
 
 function getNeteaseEmbed(source) {
   let url;
@@ -127,16 +145,14 @@ function showTrack(index, { autoplay = false } = {}) {
   currentIndex = (index + tracks.length) % tracks.length;
   const track = tracks[currentIndex];
   currentTitle.textContent = track.title;
-  currentTitle.hidden = track.source_type === "netease";
+  currentTitle.hidden = true;
   player.dataset.sourceType = track.source_type;
   controls.replaceChildren();
   activeAudio = null;
-  playPause.hidden = track.source_type !== "audio";
-  playPause.disabled = track.source_type !== "audio";
-  speedButton.hidden = track.source_type !== "audio";
-  transport.hidden = track.source_type !== "audio";
+  transport.hidden = true;
 
   if (track.source_type === "netease") {
+    currentTitle.hidden = true;
     const embedUrl = getNeteaseEmbed(track.source);
     if (!embedUrl) {
       status.textContent = `无法解析网易云音乐链接：${track.title}`;
@@ -154,6 +170,7 @@ function showTrack(index, { autoplay = false } = {}) {
     frameViewport.append(frame);
     controls.append(frameViewport);
   } else {
+    currentTitle.hidden = true;
     const audioUrl = getAudioUrl(track.source);
     if (!audioUrl) {
       status.textContent = `本地音频地址无效：${track.title}`;
@@ -161,19 +178,69 @@ function showTrack(index, { autoplay = false } = {}) {
     }
     const audio = document.createElement("audio");
     audio.className = "sidebar-music-audio";
-    audio.controls = false;
-    audio.removeAttribute("controls");
+    audio.hidden = true;
     audio.preload = "none";
     audio.src = audioUrl;
     audio.playbackRate = playbackRate;
     activeAudio = audio;
+    playPause.disabled = false;
+    speedButton.hidden = false;
+
+    const localPlayer = document.createElement("div");
+    localPlayer.className = "sidebar-music-local-player";
+    const cover = document.createElement("div");
+    cover.className = "sidebar-music-local-cover";
+    cover.setAttribute("aria-hidden", "true");
+    cover.textContent = "♫";
+    const body = document.createElement("div");
+    body.className = "sidebar-music-local-body";
+    const title = document.createElement("p");
+    title.className = "sidebar-music-local-title";
+    title.textContent = track.title;
+    const progress = document.createElement("input");
+    progress.className = "sidebar-music-progress";
+    progress.type = "range";
+    progress.min = "0";
+    progress.max = "1000";
+    progress.value = "0";
+    progress.setAttribute("aria-label", `播放进度：${track.title}`);
+    const actions = document.createElement("div");
+    actions.className = "sidebar-music-local-actions";
+    const elapsed = document.createElement("span");
+    elapsed.textContent = "0:00";
+    const duration = document.createElement("span");
+    duration.textContent = "0:00";
+    const time = document.createElement("div");
+    time.className = "sidebar-music-local-time";
+    time.append(elapsed, duration);
+
+    progress.addEventListener("input", () => {
+      if (Number.isFinite(audio.duration)) {
+        audio.currentTime = (Number(progress.value) / 1000) * audio.duration;
+      }
+    });
+    audio.addEventListener("loadedmetadata", () => {
+      duration.textContent = formatTime(audio.duration);
+    });
+    audio.addEventListener("durationchange", () => {
+      duration.textContent = formatTime(audio.duration);
+    });
+    audio.addEventListener("timeupdate", () => {
+      elapsed.textContent = formatTime(audio.currentTime);
+      progress.value = Number.isFinite(audio.duration) && audio.duration > 0
+        ? String(Math.round((audio.currentTime / audio.duration) * 1000))
+        : "0";
+    });
     audio.addEventListener("play", () => setButtonIcon(playPause, "pause", "暂停"));
     audio.addEventListener("pause", () => setButtonIcon(playPause, "play", "播放"));
     audio.addEventListener("ended", () => showTrack(currentIndex + 1, { autoplay: true }));
     audio.addEventListener("error", () => {
       status.textContent = `音频无法播放，请检查文件路径：${track.title}`;
     }, { once: true });
-    controls.append(audio);
+    actions.append(time, playPause, speedButton);
+    body.append(title, progress, actions);
+    localPlayer.append(cover, body);
+    controls.append(localPlayer, audio);
     if (autoplay) {
       audio.play().catch(() => {
         status.textContent = "浏览器阻止了自动播放，请点击播放按钮。";
@@ -186,6 +253,9 @@ function showTrack(index, { autoplay = false } = {}) {
     button.classList.toggle("is-current", selected);
     button.setAttribute("aria-current", selected ? "true" : "false");
   }
+  trackList.hidden = true;
+  listToggle.setAttribute("aria-expanded", "false");
+  listToggle.textContent = "歌单列表";
   status.textContent = "";
 }
 
@@ -198,7 +268,7 @@ async function loadTracks() {
       currentTitle.hidden = false;
       return;
     }
-    trackList.hidden = tracks.length < 2;
+    listToggle.hidden = false;
 
     for (const [index, track] of tracks.entries()) {
       const item = document.createElement("li");
