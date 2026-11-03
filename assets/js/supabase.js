@@ -6,11 +6,21 @@ const PUBLIC_POSTS_CACHE_KEY = "haiwind-public-posts";
 const PUBLIC_POSTS_CACHE_MS = 30000;
 const PUBLIC_IMAGES_CACHE_KEY = "haiwind-public-images-v2";
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+const MAX_MUSIC_AUDIO_SIZE = 50 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = new Set([
   "image/jpeg",
   "image/png",
   "image/webp",
   "image/gif",
+]);
+const ALLOWED_MUSIC_AUDIO_TYPES = new Map([
+  [".mp3", new Set(["audio/mpeg"])],
+  [".m4a", new Set(["audio/mp4", "audio/x-m4a"])],
+  [".aac", new Set(["audio/aac", "audio/mp4"])],
+  [".ogg", new Set(["audio/ogg", "application/ogg"])],
+  [".oga", new Set(["audio/ogg", "application/ogg"])],
+  [".wav", new Set(["audio/wav", "audio/x-wav", "audio/vnd.wave"])],
+  [".flac", new Set(["audio/flac", "audio/x-flac"])],
 ]);
 
 function mergePosts(...groups) {
@@ -131,6 +141,8 @@ async function request(path, { method = "GET", body, token, headers = {} } = {})
       detail = "Supabase 数据库结构未更新。请在 SQL Editor 重新执行仓库中的 supabase/schema.sql。";
     } else if (/function .*publish_post.*(not found|schema cache)/i.test(detail)) {
       detail = "Supabase 发布函数尚未更新。请在 SQL Editor 重新执行仓库中的 supabase/schema.sql，然后刷新管理页面。";
+    } else if (/relation .*music_tracks.* does not exist|music_tracks.*schema cache/i.test(detail)) {
+      detail = "音乐歌单数据表尚未创建。请在 Supabase SQL Editor 执行更新后的 supabase/schema.sql。";
     }
     throw new Error(detail || `Supabase 请求失败（HTTP ${response.status}）。`);
   }
@@ -468,6 +480,98 @@ export async function listAdminPosts(session) {
   });
   const posts = await request(`/rest/v1/posts?${query}`, { token: session.access_token });
   return posts.map(withPostImages);
+}
+
+export async function listPublicMusicTracks() {
+  const query = new URLSearchParams({
+    select: "id,title,source_type,source,created_at",
+    order: "created_at.asc,id.asc",
+  });
+  return request(`/rest/v1/music_tracks?${query}`);
+}
+
+export async function listAdminMusicTracks(session) {
+  const query = new URLSearchParams({
+    select: "id,title,source_type,source,created_at",
+    order: "created_at.asc,id.asc",
+  });
+  return request(`/rest/v1/music_tracks?${query}`, {
+    token: session.access_token,
+  });
+}
+
+export async function addMusicTrack(session, { title, sourceType, source }) {
+  return request("/rest/v1/music_tracks", {
+    method: "POST",
+    body: {
+      title: title.trim(),
+      source_type: sourceType,
+      source: source.trim(),
+      created_by: session.user.id,
+    },
+    token: session.access_token,
+    headers: { Prefer: "return=minimal" },
+  });
+}
+
+export async function deleteMusicTrack(session, trackId) {
+  const query = new URLSearchParams({ id: `eq.${trackId}` });
+  return request(`/rest/v1/music_tracks?${query}`, {
+    method: "DELETE",
+    token: session.access_token,
+    headers: { Prefer: "return=minimal" },
+  });
+}
+
+export async function uploadMusicAudio(session, file) {
+  const extension = file.name.match(/\.[^.]+$/)?.[0].toLowerCase();
+  const allowedTypes = ALLOWED_MUSIC_AUDIO_TYPES.get(extension);
+  const isGenericType = !file.type || file.type === "application/octet-stream";
+  if (!allowedTypes || (!isGenericType && !allowedTypes.has(file.type))) {
+    throw new Error(`${file.name}：仅支持 MP3、M4A、AAC、OGG、WAV 或 FLAC 音频。`);
+  }
+  if (file.size > MAX_MUSIC_AUDIO_SIZE) {
+    throw new Error(`${file.name}：音频文件不能超过 50 MB。`);
+  }
+
+  const safeName =
+    file.name
+      .normalize("NFKD")
+      .replace(/[^a-zA-Z0-9._-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(-100) || `audio${extension}`;
+  const date = new Date().toISOString().slice(0, 10);
+  const path = `${session.user.id}/${date}/${crypto.randomUUID()}-${safeName}`;
+  const encodedPath = path.split("/").map(encodeURIComponent).join("/");
+  const contentType = isGenericType ? [...allowedTypes][0] : file.type;
+  await request(`/storage/v1/object/music-files/${encodedPath}`, {
+    method: "POST",
+    body: file,
+    token: session.access_token,
+    headers: { "Content-Type": contentType, "x-upsert": "false" },
+  });
+  return new URL(
+    `/storage/v1/object/public/music-files/${encodedPath}`,
+    new URL(supabaseConfig.url).origin,
+  ).toString();
+}
+
+export async function deleteUploadedMusicAudio(session, source) {
+  let url;
+  try {
+    url = new URL(source);
+  } catch {
+    return;
+  }
+  if (url.origin !== new URL(supabaseConfig.url).origin) return;
+  const prefix = "/storage/v1/object/public/music-files/";
+  if (!url.pathname.startsWith(prefix)) return;
+  const encodedPath = url.pathname.slice(prefix.length);
+  if (!encodedPath.startsWith(`${encodeURIComponent(session.user.id)}/`)) return;
+  await request(`/storage/v1/object/music-files/${encodedPath}`, {
+    method: "DELETE",
+    token: session.access_token,
+  });
 }
 
 export async function setPostPublished(session, postId, published) {
