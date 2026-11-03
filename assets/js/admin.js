@@ -3,7 +3,11 @@ import {
   getConfigurationError,
   isBlogAdmin,
   isConfigured,
+  addMusicTrack,
+  deleteUploadedMusicAudio,
+  deleteMusicTrack,
   listAdminImages,
+  listAdminMusicTracks,
   listAdminPosts,
   publicImageUrl,
   publishPost,
@@ -12,7 +16,8 @@ import {
   signIn,
   signOut,
   uploadImage,
-} from "./supabase.js?v=20261102-3";
+  uploadMusicAudio,
+} from "./supabase.js?v=20261103-2";
 
 const loginPanel = document.querySelector("[data-login-panel]");
 const dashboard = document.querySelector("[data-dashboard]");
@@ -40,6 +45,9 @@ const existingPostSelect = document.querySelector("[data-image-post-select]");
 const existingImageSelection = document.querySelector("[data-existing-image-selection]");
 const attachExistingImageButton = document.querySelector("[data-attach-existing-image]");
 const logoutButton = document.querySelector("[data-logout]");
+const musicTrackForm = document.querySelector("[data-music-track-form]");
+const musicTrackMessage = document.querySelector("[data-music-track-message]");
+const musicTrackList = document.querySelector("[data-admin-music-tracks]");
 
 let session = null;
 let pendingExistingImagePath = "";
@@ -101,6 +109,109 @@ function resolveInlineImageMarkers(content) {
 function setMessage(element, message, isError = false) {
   element.textContent = message;
   element.classList.toggle("is-error", isError);
+}
+
+function validateMusicSource(sourceType, source) {
+  if (sourceType === "netease") {
+    let url;
+    try {
+      url = new URL(source);
+    } catch {
+      throw new Error("请输入有效的网易云音乐歌曲或歌单链接。");
+    }
+    if (
+      url.protocol !== "https:" ||
+      !["music.163.com", "www.music.163.com", "y.music.163.com"].includes(url.hostname)
+    ) {
+      throw new Error("网易云音源请使用 music.163.com 的歌曲或歌单分享链接。");
+    }
+    const match = url.pathname.match(/\/(song|playlist)\/(\d+)/i);
+    const id = url.searchParams.get("id") || match?.[2];
+    if (!id || !/^\d+$/.test(id)) {
+      throw new Error("链接中没有找到网易云歌曲或歌单 ID。");
+    }
+    return url.toString();
+  }
+
+  if (sourceType !== "audio") {
+    throw new Error("请选择网易云音乐或音频文件作为音源类型。");
+  }
+  if (source.startsWith("/") && !source.startsWith("//")) {
+    const url = new URL(source, location.origin);
+    if (url.origin !== location.origin) {
+      throw new Error("本地音频路径必须指向当前网站。");
+    }
+    return `${url.pathname}${url.search}${url.hash}`;
+  }
+  let url;
+  try {
+    url = new URL(source);
+  } catch {
+    throw new Error("本地音频请输入以 / 开头的网站路径，或 HTTPS 音频链接。");
+  }
+  if (url.protocol !== "https:") {
+    throw new Error("音频链接必须使用 HTTPS。");
+  }
+  return url.toString();
+}
+
+function createMusicTrackRow(track) {
+  const row = document.createElement("div");
+  row.className = "admin-music-track-row";
+  const details = document.createElement("div");
+  const title = document.createElement("strong");
+  title.textContent = track.title;
+  const source = document.createElement("span");
+  source.textContent = `${track.source_type === "netease" ? "网易云音乐" : "音频文件"} · ${track.source}`;
+  details.append(title, source);
+
+  const remove = document.createElement("button");
+  remove.type = "button";
+  remove.className = "admin-button admin-button-secondary";
+  remove.textContent = "从歌单移除";
+  remove.addEventListener("click", async () => {
+    if (!window.confirm(`确定从公共歌单移除「${track.title}」吗？`)) return;
+    remove.disabled = true;
+    let trackDeleted = false;
+    try {
+      await deleteMusicTrack(session, track.id);
+      trackDeleted = true;
+      let cleanupWarning = "";
+      if (track.source_type === "audio") {
+        try {
+          await deleteUploadedMusicAudio(session, track.source);
+        } catch (error) {
+          cleanupWarning = ` 音频文件清理失败：${error.message}`;
+        }
+      }
+      await refreshMusicTracks();
+      setMessage(
+        musicTrackMessage,
+        `已从歌单移除「${track.title}」。${cleanupWarning}`,
+        Boolean(cleanupWarning),
+      );
+    } catch (error) {
+      setMessage(
+        musicTrackMessage,
+        trackDeleted ? `歌曲已移除，但歌单刷新失败：${error.message}` : error.message,
+        true,
+      );
+      if (!trackDeleted) remove.disabled = false;
+    }
+  });
+  row.append(details, remove);
+  return row;
+}
+
+async function refreshMusicTracks() {
+  const tracks = await listAdminMusicTracks(session);
+  musicTrackList.replaceChildren(...tracks.map(createMusicTrackRow));
+  if (!tracks.length) {
+    const empty = document.createElement("p");
+    empty.className = "admin-empty";
+    empty.textContent = "歌单还是空的，添加歌曲后会显示在网站侧栏。";
+    musicTrackList.append(empty);
+  }
 }
 
 function updateSelectedImageMessage() {
@@ -363,11 +474,62 @@ async function showDashboard(currentSession) {
   adminEmail.textContent = session.user.email || "管理员";
   setMessage(pageMessage, "");
   try {
-    await Promise.all([refreshPosts(), refreshImages()]);
+    await Promise.all([refreshPosts(), refreshImages(), refreshMusicTracks()]);
   } catch (error) {
     setMessage(pageMessage, error.message, true);
   }
 }
+
+musicTrackForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const submit = musicTrackForm.querySelector('button[type="submit"]');
+  submit.disabled = true;
+  let uploadedAudioUrl = "";
+  let trackSaved = false;
+  try {
+    const data = new FormData(musicTrackForm);
+    const title = String(data.get("title")).trim();
+    if (!title) throw new Error("请填写歌曲名称。");
+    const sourceType = String(data.get("sourceType"));
+    const sourceInput = String(data.get("source")).trim();
+    const audioFile = data.get("audioFile");
+    let source;
+    if (audioFile instanceof File && audioFile.size) {
+      if (sourceType !== "audio") {
+        throw new Error("上传音频文件时，请将音源类型设为“网站音频文件 / HTTPS 音频链接”。");
+      }
+      if (sourceInput) {
+        throw new Error("请上传文件或填写音频链接，不能同时填写两者。");
+      }
+      setMessage(musicTrackMessage, `正在上传音频 ${audioFile.name}…`);
+      uploadedAudioUrl = await uploadMusicAudio(session, audioFile);
+      source = uploadedAudioUrl;
+    } else {
+      if (!sourceInput) throw new Error("请填写歌曲链接或选择音频文件。");
+      setMessage(musicTrackMessage, "正在添加到公共歌单…");
+      source = validateMusicSource(sourceType, sourceInput);
+    }
+    await addMusicTrack(session, { title, sourceType, source });
+    trackSaved = true;
+    musicTrackForm.reset();
+    setMessage(musicTrackMessage, "已添加到公共歌单。");
+    await refreshMusicTracks();
+  } catch (error) {
+    let detail = error.message;
+    if (uploadedAudioUrl && !trackSaved) {
+      try {
+        await deleteUploadedMusicAudio(session, uploadedAudioUrl);
+      } catch (cleanupError) {
+        detail += ` 音频已上传但未加入歌单，且清理失败：${cleanupError.message}`;
+      }
+    } else if (trackSaved) {
+      detail = `歌曲已添加，但歌单刷新失败：${error.message}`;
+    }
+    setMessage(musicTrackMessage, detail, true);
+  } finally {
+    submit.disabled = false;
+  }
+});
 
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();

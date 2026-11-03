@@ -186,6 +186,7 @@
 .admin-page input[type="password"],
 .admin-page input[type="text"],
 .admin-page input[type="url"],
+.admin-page select,
 .admin-page textarea {
   background: #fff;
   border: 1px solid var(--admin-line);
@@ -195,6 +196,11 @@
   font: inherit;
   padding: 0.8rem 0.9rem;
   width: 100%;
+}
+
+.admin-page select {
+  min-height: 44px;
+  padding: 0.65rem 0.8rem;
 }
 
 .admin-page textarea {
@@ -209,6 +215,7 @@
 }
 
 .admin-page input:focus,
+.admin-page select:focus,
 .admin-page textarea:focus {
   border-color: #8aa6ff;
   outline: 3px solid rgba(49, 95, 234, 0.12);
@@ -336,6 +343,58 @@
   flex-wrap: wrap;
   justify-content: flex-start;
   margin-bottom: 0.5rem;
+}
+
+.admin-music-form {
+  display: grid;
+  gap: 0.25rem;
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 720px;
+}
+
+.admin-music-form .admin-button {
+  justify-self: start;
+  margin-top: 0.75rem;
+}
+
+.admin-music-form .admin-message {
+  margin: 0.5rem 0 0;
+}
+
+.admin-music-track-list {
+  border-top: 1px solid var(--admin-line);
+  margin-top: 1.25rem;
+}
+
+.admin-music-track-row {
+  align-items: center;
+  border-bottom: 1px solid var(--admin-line);
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 0.85rem 0;
+}
+
+.admin-music-track-row > div {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.admin-music-track-row strong {
+  overflow-wrap: anywhere;
+}
+
+.admin-music-track-row span {
+  color: var(--admin-muted);
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+
+.admin-music-track-row .admin-button {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 0.4rem 0.65rem;
 }
 
 .admin-file-picker {

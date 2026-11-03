@@ -7,10 +7,10 @@
     <meta name="description" content="Haiwind 博客管理后台">
     <title>博客管理 | Haiwind</title>
     <link rel="icon" type="image/png" href="/images/haiwind-favicon.png?v=20261027-1" sizes="64x64">
-    <link rel="stylesheet" href="/site.css?v=20261102-5">
-    <link rel="stylesheet" href="/admin/admin.css?v=20261102-3">
+    <link rel="stylesheet" href="/site.css?v=20261103-1">
+    <link rel="stylesheet" href="/admin/admin.css?v=20261103-2">
     <script type="module" src="/assets/js/static-publish.js?v=20261102-2"></script>
-    <script type="module" src="/assets/js/admin.js?v=20261102-5"></script>
+    <script type="module" src="/assets/js/admin.js?v=20261103-2"></script>
   </head>
   <body class="admin-page">
     <header class="admin-header">
@@ -115,6 +115,34 @@
           </form>
         </section>
         <div data-static-publish-dashboard-slot></div>
+
+        <section class="admin-panel">
+          <div class="admin-section-heading">
+            <div>
+              <p class="admin-eyebrow">MUSIC PLAYER</p>
+              <h2>音乐歌单</h2>
+            </div>
+            <p class="admin-hint">歌单对所有访客可见。可添加网易云链接、HTTPS 音频链接，或上传不超过 50 MB 的 MP3、M4A、AAC、OGG、WAV、FLAC 文件。</p>
+          </div>
+          <form class="admin-music-form" data-music-track-form>
+            <label for="music-track-title">歌曲名称</label>
+            <input id="music-track-title" name="title" type="text" maxlength="120" required placeholder="歌曲或歌单名称">
+            <label for="music-track-type">音源类型</label>
+            <select id="music-track-type" name="sourceType">
+              <option value="netease">网易云音乐</option>
+              <option value="audio">网站音频文件 / HTTPS 音频链接</option>
+            </select>
+            <label for="music-track-source">歌曲或音频链接（也可选择上传文件）</label>
+            <input id="music-track-source" name="source" type="text" maxlength="2048" placeholder="https://music.163.com/song?id=… 或 HTTPS 音频链接">
+            <label class="admin-file-picker" for="music-track-file">
+              选择音频文件
+              <input id="music-track-file" name="audioFile" type="file" accept=".mp3,.m4a,.aac,.ogg,.oga,.wav,.flac,audio/*">
+            </label>
+            <button class="admin-button admin-button-primary" type="submit">添加到歌单</button>
+            <p class="admin-message" data-music-track-message role="status" aria-live="polite"></p>
+          </form>
+          <div class="admin-music-track-list" data-admin-music-tracks></div>
+        </section>
 
         <section class="admin-panel">
           <div class="admin-section-heading">

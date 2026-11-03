@@ -261,3 +261,96 @@ create policy "Admins can delete their blog images"
     and (select public.is_blog_admin())
     and (storage.foldername(name))[1] = (select auth.uid())::text
   );
+
+insert into storage.buckets (
+  id,
+  name,
+  public,
+  file_size_limit,
+  allowed_mime_types
+)
+values (
+  'music-files',
+  'music-files',
+  true,
+  52428800,
+  array[
+    'audio/mpeg',
+    'audio/mp4',
+    'audio/x-m4a',
+    'audio/aac',
+    'audio/ogg',
+    'application/ogg',
+    'audio/wav',
+    'audio/x-wav',
+    'audio/vnd.wave',
+    'audio/flac',
+    'audio/x-flac'
+  ]
+)
+on conflict (id) do update
+set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "Admins can upload their music files" on storage.objects;
+create policy "Admins can upload their music files"
+  on storage.objects for insert
+  to authenticated
+  with check (
+    bucket_id = 'music-files'
+    and (select public.is_blog_admin())
+    and (storage.foldername(name))[1] = (select auth.uid())::text
+  );
+
+drop policy if exists "Admins can delete their music files" on storage.objects;
+create policy "Admins can delete their music files"
+  on storage.objects for delete
+  to authenticated
+  using (
+    bucket_id = 'music-files'
+    and (select public.is_blog_admin())
+    and (storage.foldername(name))[1] = (select auth.uid())::text
+  );
+
+create table if not exists public.music_tracks (
+  id uuid primary key default gen_random_uuid(),
+  title text not null check (char_length(title) between 1 and 120),
+  source_type text not null check (source_type in ('netease', 'audio')),
+  source text not null check (char_length(source) between 1 and 2048),
+  created_by uuid not null references auth.users (id) on delete restrict,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists music_tracks_created_at_idx
+  on public.music_tracks (created_at, id);
+
+alter table public.music_tracks enable row level security;
+revoke all on public.music_tracks from public, anon, authenticated;
+revoke select on public.music_tracks from anon, authenticated;
+grant select (id, title, source_type, source, created_at)
+  on public.music_tracks to anon, authenticated;
+grant insert (title, source_type, source, created_by) on public.music_tracks to authenticated;
+grant delete on public.music_tracks to authenticated;
+
+drop policy if exists "Anyone can read music tracks" on public.music_tracks;
+create policy "Anyone can read music tracks"
+  on public.music_tracks for select
+  to anon, authenticated
+  using (true);
+
+drop policy if exists "Admins can add music tracks" on public.music_tracks;
+create policy "Admins can add music tracks"
+  on public.music_tracks for insert
+  to authenticated
+  with check (
+    (select public.is_blog_admin())
+    and created_by = (select auth.uid())
+  );
+
+drop policy if exists "Admins can delete music tracks" on public.music_tracks;
+create policy "Admins can delete music tracks"
+  on public.music_tracks for delete
+  to authenticated
+  using ((select public.is_blog_admin()));
