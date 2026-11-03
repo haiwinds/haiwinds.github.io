@@ -1,4 +1,4 @@
-import { listPublicMusicTracks } from "./supabase.js?v=20261103-1";
+import { listPublicMusicTracks } from "./supabase.js?v=20261103-2";
 
 const sidebar = document.querySelector(".home-sidebar");
 const footer = sidebar?.querySelector(".home-sidebar-footer");
@@ -10,6 +10,7 @@ sidebar.classList.add("has-music-player");
 const player = document.createElement("section");
 player.className = "sidebar-music";
 player.setAttribute("aria-label", "音乐播放器");
+player.dataset.sourceType = "";
 player.innerHTML = `
   <div class="sidebar-music-heading">
     <span class="sidebar-music-note" aria-hidden="true">♫</span>
@@ -26,27 +27,57 @@ sidebar.insertBefore(player, footer);
 const currentTitle = player.querySelector("[data-music-current]");
 const controls = player.querySelector("[data-music-controls]");
 const transport = player.querySelector("[data-music-transport]");
-transport.hidden = true;
 const trackList = player.querySelector("[data-music-list]");
 const status = player.querySelector("[data-music-status]");
+transport.hidden = true;
+trackList.hidden = true;
 let tracks = [];
 let currentIndex = 0;
+let activeAudio = null;
+let playbackRate = 1;
+const playbackRates = [0.75, 1, 1.25, 1.5, 2];
 
-const previous = document.createElement("button");
-previous.type = "button";
-previous.className = "sidebar-music-skip";
-previous.setAttribute("aria-label", "上一首");
-previous.textContent = "‹";
-previous.disabled = true;
-previous.addEventListener("click", () => showTrack(currentIndex - 1));
-const next = document.createElement("button");
-next.type = "button";
-next.className = "sidebar-music-skip";
-next.setAttribute("aria-label", "下一首");
-next.textContent = "›";
-next.disabled = true;
-next.addEventListener("click", () => showTrack(currentIndex + 1));
-transport.append(previous, next);
+const icons = {
+  play: '<path d="m8 5 12 7-12 7z"/>',
+  pause: '<path d="M8 5h3v14H8z"/><path d="M15 5h3v14h-3z"/>',
+};
+
+function setButtonIcon(button, icon, label) {
+  button.setAttribute("aria-label", label);
+  button.title = label;
+  button.innerHTML = `<svg class="music-icon-${icon}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${icons[icon]}</svg>`;
+}
+
+const playPause = document.createElement("button");
+playPause.type = "button";
+playPause.className = "sidebar-music-skip sidebar-music-play";
+setButtonIcon(playPause, "play", "播放");
+playPause.disabled = true;
+playPause.addEventListener("click", () => {
+  if (!activeAudio) return;
+  if (activeAudio.paused) {
+    activeAudio.play().catch(() => {
+      status.textContent = "无法播放此音频，请检查文件或浏览器设置。";
+    });
+  } else {
+    activeAudio.pause();
+  }
+});
+const speedButton = document.createElement("button");
+speedButton.type = "button";
+speedButton.className = "sidebar-music-speed";
+speedButton.textContent = "1×";
+speedButton.setAttribute("aria-label", "播放速度 1 倍");
+speedButton.title = "切换播放速度";
+speedButton.hidden = true;
+speedButton.addEventListener("click", () => {
+  const rateIndex = playbackRates.indexOf(playbackRate);
+  playbackRate = playbackRates[(rateIndex + 1) % playbackRates.length];
+  if (activeAudio) activeAudio.playbackRate = playbackRate;
+  speedButton.textContent = `${playbackRate}×`;
+  speedButton.setAttribute("aria-label", `播放速度 ${playbackRate} 倍`);
+});
+transport.append(playPause, speedButton);
 
 function getNeteaseEmbed(source) {
   let url;
@@ -76,7 +107,7 @@ function getNeteaseEmbed(source) {
   embed.searchParams.set("type", type);
   embed.searchParams.set("id", id);
   embed.searchParams.set("auto", "0");
-  embed.searchParams.set("height", "86");
+  embed.searchParams.set("height", "150");
   return embed.toString();
 }
 
@@ -96,7 +127,14 @@ function showTrack(index, { autoplay = false } = {}) {
   currentIndex = (index + tracks.length) % tracks.length;
   const track = tracks[currentIndex];
   currentTitle.textContent = track.title;
+  currentTitle.hidden = track.source_type === "netease";
+  player.dataset.sourceType = track.source_type;
   controls.replaceChildren();
+  activeAudio = null;
+  playPause.hidden = track.source_type !== "audio";
+  playPause.disabled = track.source_type !== "audio";
+  speedButton.hidden = track.source_type !== "audio";
+  transport.hidden = track.source_type !== "audio";
 
   if (track.source_type === "netease") {
     const embedUrl = getNeteaseEmbed(track.source);
@@ -111,7 +149,10 @@ function showTrack(index, { autoplay = false } = {}) {
     frame.loading = "lazy";
     frame.referrerPolicy = "strict-origin-when-cross-origin";
     frame.allow = "autoplay";
-    controls.append(frame);
+    const frameViewport = document.createElement("div");
+    frameViewport.className = "sidebar-music-embed-viewport";
+    frameViewport.append(frame);
+    controls.append(frameViewport);
   } else {
     const audioUrl = getAudioUrl(track.source);
     if (!audioUrl) {
@@ -120,9 +161,14 @@ function showTrack(index, { autoplay = false } = {}) {
     }
     const audio = document.createElement("audio");
     audio.className = "sidebar-music-audio";
-    audio.controls = true;
+    audio.controls = false;
+    audio.removeAttribute("controls");
     audio.preload = "none";
     audio.src = audioUrl;
+    audio.playbackRate = playbackRate;
+    activeAudio = audio;
+    audio.addEventListener("play", () => setButtonIcon(playPause, "pause", "暂停"));
+    audio.addEventListener("pause", () => setButtonIcon(playPause, "play", "播放"));
     audio.addEventListener("ended", () => showTrack(currentIndex + 1, { autoplay: true }));
     audio.addEventListener("error", () => {
       status.textContent = `音频无法播放，请检查文件路径：${track.title}`;
@@ -149,12 +195,10 @@ async function loadTracks() {
     trackList.replaceChildren();
     if (!tracks.length) {
       currentTitle.textContent = "歌单还是空的";
-      status.textContent = "管理员可在后台添加网易云歌曲或音频文件。";
+      currentTitle.hidden = false;
       return;
     }
-    transport.hidden = false;
-    previous.disabled = false;
-    next.disabled = false;
+    trackList.hidden = tracks.length < 2;
 
     for (const [index, track] of tracks.entries()) {
       const item = document.createElement("li");
@@ -168,6 +212,7 @@ async function loadTracks() {
     showTrack(0);
   } catch (error) {
     currentTitle.textContent = "歌单暂不可用";
+    currentTitle.hidden = false;
     status.textContent = error.message;
   }
 }
