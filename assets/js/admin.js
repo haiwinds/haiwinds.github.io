@@ -8,6 +8,7 @@ import {
   deleteMusicTrack,
   listAdminImages,
   listAdminMusicTracks,
+  reorderMusicTracks,
   listAdminPosts,
   publicImageUrl,
   publishPost,
@@ -17,7 +18,7 @@ import {
   signOut,
   uploadImage,
   uploadMusicAudio,
-} from "./supabase.js?v=20261103-2";
+} from "./supabase.js?v=20261104-1";
 
 const loginPanel = document.querySelector("[data-login-panel]");
 const dashboard = document.querySelector("[data-dashboard]");
@@ -54,6 +55,9 @@ let pendingExistingImagePath = "";
 let selectedNewImagePaths = [];
 let selectedLocalFiles = [];
 let inlineSelection = null;
+let musicTracks = [];
+let isSavingMusicOrder = false;
+let draggedMusicTrackId = "";
 const uploadedInlineImagePaths = new Map();
 
 function setSelectedLocalFiles(files) {
@@ -155,9 +159,11 @@ function validateMusicSource(sourceType, source) {
   return url.toString();
 }
 
-function createMusicTrackRow(track) {
+function createMusicTrackRow(track, index) {
   const row = document.createElement("div");
   row.className = "admin-music-track-row";
+  row.draggable = !isSavingMusicOrder;
+  row.dataset.trackId = track.id;
   const details = document.createElement("div");
   const title = document.createElement("strong");
   title.textContent = track.title;
@@ -165,10 +171,35 @@ function createMusicTrackRow(track) {
   source.textContent = `${track.source_type === "netease" ? "网易云音乐" : "音频文件"} · ${track.source}`;
   details.append(title, source);
 
+  const actions = document.createElement("div");
+  actions.className = "admin-music-track-actions";
+  const dragHandle = document.createElement("span");
+  dragHandle.className = "admin-music-track-drag-handle";
+  dragHandle.setAttribute("aria-hidden", "true");
+  dragHandle.textContent = "⠿";
+  dragHandle.title = "拖动调整顺序";
+
+  const moveUp = document.createElement("button");
+  moveUp.type = "button";
+  moveUp.className = "admin-button admin-button-secondary admin-music-track-move";
+  moveUp.textContent = "上移";
+  moveUp.setAttribute("aria-label", `上移「${track.title}」`);
+  moveUp.disabled = index === 0 || isSavingMusicOrder;
+  moveUp.addEventListener("click", () => moveMusicTrack(track.id, -1));
+
+  const moveDown = document.createElement("button");
+  moveDown.type = "button";
+  moveDown.className = "admin-button admin-button-secondary admin-music-track-move";
+  moveDown.textContent = "下移";
+  moveDown.setAttribute("aria-label", `下移「${track.title}」`);
+  moveDown.disabled = index === musicTracks.length - 1 || isSavingMusicOrder;
+  moveDown.addEventListener("click", () => moveMusicTrack(track.id, 1));
+
   const remove = document.createElement("button");
   remove.type = "button";
   remove.className = "admin-button admin-button-secondary";
   remove.textContent = "从歌单移除";
+  remove.disabled = isSavingMusicOrder;
   remove.addEventListener("click", async () => {
     if (!window.confirm(`确定从公共歌单移除「${track.title}」吗？`)) return;
     remove.disabled = true;
@@ -199,20 +230,113 @@ function createMusicTrackRow(track) {
       if (!trackDeleted) remove.disabled = false;
     }
   });
-  row.append(details, remove);
+  actions.append(dragHandle, moveUp, moveDown, remove);
+  row.append(details, actions);
   return row;
 }
 
-async function refreshMusicTracks() {
-  const tracks = await listAdminMusicTracks(session);
-  musicTrackList.replaceChildren(...tracks.map(createMusicTrackRow));
-  if (!tracks.length) {
+function renderMusicTracks() {
+  musicTrackList.replaceChildren(...musicTracks.map(createMusicTrackRow));
+  if (!musicTracks.length) {
     const empty = document.createElement("p");
     empty.className = "admin-empty";
     empty.textContent = "歌单还是空的，添加歌曲后会显示在网站侧栏。";
     musicTrackList.append(empty);
   }
 }
+
+async function refreshMusicTracks() {
+  musicTracks = await listAdminMusicTracks(session);
+  renderMusicTracks();
+}
+
+async function saveMusicTrackOrder(orderedTracks) {
+  if (isSavingMusicOrder) return;
+  const previousTracks = musicTracks;
+  musicTracks = orderedTracks;
+  isSavingMusicOrder = true;
+  musicTrackList.setAttribute("aria-busy", "true");
+  renderMusicTracks();
+  setMessage(musicTrackMessage, "正在保存歌单顺序…");
+  try {
+    await reorderMusicTracks(session, musicTracks.map((track) => track.id));
+    setMessage(musicTrackMessage, "歌单顺序已保存。");
+  } catch (error) {
+    musicTracks = previousTracks;
+    setMessage(musicTrackMessage, `歌单顺序保存失败：${error.message}`, true);
+    try {
+      await refreshMusicTracks();
+    } catch (refreshError) {
+      setMessage(
+        musicTrackMessage,
+        `歌单顺序保存失败：${error.message}；重新加载歌单也失败：${refreshError.message}`,
+        true,
+      );
+    }
+  } finally {
+    isSavingMusicOrder = false;
+    musicTrackList.removeAttribute("aria-busy");
+    renderMusicTracks();
+  }
+}
+
+async function moveMusicTrack(trackId, offset) {
+  const index = musicTracks.findIndex((track) => track.id === trackId);
+  const targetIndex = index + offset;
+  if (index < 0 || targetIndex < 0 || targetIndex >= musicTracks.length) return;
+  const orderedTracks = [...musicTracks];
+  [orderedTracks[index], orderedTracks[targetIndex]] = [orderedTracks[targetIndex], orderedTracks[index]];
+  await saveMusicTrackOrder(orderedTracks);
+}
+
+musicTrackList.addEventListener("dragstart", (event) => {
+  if (isSavingMusicOrder) {
+    event.preventDefault();
+    return;
+  }
+  const row = event.target.closest(".admin-music-track-row");
+  if (!row) return;
+  draggedMusicTrackId = row.dataset.trackId;
+  row.classList.add("is-dragging");
+  event.dataTransfer.effectAllowed = "move";
+  event.dataTransfer.setData("text/plain", draggedMusicTrackId);
+});
+
+musicTrackList.addEventListener("dragover", (event) => {
+  if (!draggedMusicTrackId || isSavingMusicOrder) return;
+  const target = event.target.closest(".admin-music-track-row");
+  if (!target || target.dataset.trackId === draggedMusicTrackId) return;
+  event.preventDefault();
+  const draggedRow = [...musicTrackList.querySelectorAll(".admin-music-track-row")]
+    .find((row) => row.dataset.trackId === draggedMusicTrackId);
+  if (!draggedRow) return;
+  const bounds = target.getBoundingClientRect();
+  musicTrackList.insertBefore(
+    draggedRow,
+    event.clientY < bounds.top + bounds.height / 2 ? target : target.nextSibling,
+  );
+});
+
+musicTrackList.addEventListener("drop", async (event) => {
+  if (!draggedMusicTrackId || isSavingMusicOrder) return;
+  event.preventDefault();
+  const orderedIds = [...musicTrackList.querySelectorAll(".admin-music-track-row")]
+    .map((row) => row.dataset.trackId);
+  const tracksById = new Map(musicTracks.map((track) => [track.id, track]));
+  const orderedTracks = orderedIds.map((id) => tracksById.get(id)).filter(Boolean);
+  draggedMusicTrackId = "";
+  if (orderedTracks.length === musicTracks.length) {
+    await saveMusicTrackOrder(orderedTracks);
+  } else {
+    renderMusicTracks();
+  }
+});
+
+musicTrackList.addEventListener("dragend", () => {
+  draggedMusicTrackId = "";
+  musicTrackList.querySelector(".is-dragging")?.classList.remove("is-dragging");
+  if (!isSavingMusicOrder) renderMusicTracks();
+});
 
 function updateSelectedImageMessage() {
   const localCount = publishImageInput.files.length;
@@ -509,7 +633,12 @@ musicTrackForm.addEventListener("submit", async (event) => {
       setMessage(musicTrackMessage, "正在添加到公共歌单…");
       source = validateMusicSource(sourceType, sourceInput);
     }
-    await addMusicTrack(session, { title, sourceType, source });
+    await addMusicTrack(session, {
+      title,
+      sourceType,
+      source,
+      sortOrder: Math.max(-1, ...musicTracks.map((track) => track.sort_order)) + 1,
+    });
     trackSaved = true;
     musicTrackForm.reset();
     setMessage(musicTrackMessage, "已添加到公共歌单。");
