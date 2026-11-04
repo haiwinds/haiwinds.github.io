@@ -370,15 +370,40 @@
   align-items: center;
   border-bottom: 1px solid var(--admin-line);
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
   justify-content: space-between;
   padding: 0.85rem 0;
+}
+
+.admin-music-track-row[draggable="true"] {
+  cursor: grab;
+}
+
+.admin-music-track-row.is-dragging {
+  opacity: 0.45;
 }
 
 .admin-music-track-row > div {
   display: grid;
   gap: 0.2rem;
   min-width: 0;
+}
+
+.admin-music-track-actions {
+  align-items: center;
+  display: flex !important;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  justify-content: flex-end;
+}
+
+.admin-music-track-drag-handle {
+  color: var(--admin-muted);
+  cursor: grab;
+  font-size: 1.2rem !important;
+  line-height: 1;
+  user-select: none;
 }
 
 .admin-music-track-row strong {
@@ -395,6 +420,10 @@
   flex: 0 0 auto;
   min-height: 36px;
   padding: 0.4rem 0.65rem;
+}
+
+.admin-music-track-row .admin-music-track-move {
+  min-width: 3.25rem;
 }
 
 .admin-file-picker {
@@ -667,6 +696,16 @@
 
   .admin-post-actions {
     justify-content: flex-start;
+  }
+
+  .admin-music-track-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .admin-music-track-actions {
+    justify-content: flex-start;
+    width: 100%;
   }
 
   .admin-upload-form {

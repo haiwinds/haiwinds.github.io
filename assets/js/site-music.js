@@ -1,4 +1,4 @@
-import { listPublicMusicTracks } from "./supabase.js?v=20261103-2";
+import { listPublicMusicTracks } from "./supabase.js?v=20261104-1";
 
 const sidebar = document.querySelector(".home-sidebar");
 const footer = sidebar?.querySelector(".home-sidebar-footer");
@@ -120,7 +120,7 @@ function getNeteaseEmbed(source) {
     album: "1",
     song: "2",
     program: "3",
-    dj: "4",
+    dj: "3",
     djradio: "4",
   };
   const type = /^[0-4]$/.test(requestedType || "")

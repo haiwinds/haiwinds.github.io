@@ -484,23 +484,23 @@ export async function listAdminPosts(session) {
 
 export async function listPublicMusicTracks() {
   const query = new URLSearchParams({
-    select: "id,title,source_type,source,created_at",
-    order: "created_at.asc,id.asc",
+    select: "id,title,source_type,source,created_at,sort_order",
+    order: "sort_order.asc,id.asc",
   });
   return request(`/rest/v1/music_tracks?${query}`);
 }
 
 export async function listAdminMusicTracks(session) {
   const query = new URLSearchParams({
-    select: "id,title,source_type,source,created_at",
-    order: "created_at.asc,id.asc",
+    select: "id,title,source_type,source,created_at,sort_order",
+    order: "sort_order.asc,id.asc",
   });
   return request(`/rest/v1/music_tracks?${query}`, {
     token: session.access_token,
   });
 }
 
-export async function addMusicTrack(session, { title, sourceType, source }) {
+export async function addMusicTrack(session, { title, sourceType, source, sortOrder }) {
   return request("/rest/v1/music_tracks", {
     method: "POST",
     body: {
@@ -508,9 +508,18 @@ export async function addMusicTrack(session, { title, sourceType, source }) {
       source_type: sourceType,
       source: source.trim(),
       created_by: session.user.id,
+      sort_order: sortOrder,
     },
     token: session.access_token,
     headers: { Prefer: "return=minimal" },
+  });
+}
+
+export async function reorderMusicTracks(session, trackIds) {
+  return request("/rest/v1/rpc/reorder_music_tracks", {
+    method: "POST",
+    body: { track_ids: trackIds },
+    token: session.access_token,
   });
 }
 
