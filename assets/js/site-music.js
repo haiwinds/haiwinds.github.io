@@ -107,19 +107,25 @@ function getNeteaseEmbed(source) {
     return null;
   }
 
-  const path = url.pathname.toLowerCase();
-  const match = path.match(/\/(song|playlist)\/(\d+)/);
+  const route = `${url.pathname}${url.hash.split("?")[0]}`.toLowerCase();
+  const match = route.match(/\/(song|playlist|album|program|djradio|dj)(?:\/(\d+))?(?=\/|$)/);
   const hashQuery = url.hash.includes("?")
     ? new URLSearchParams(url.hash.slice(url.hash.indexOf("?") + 1))
     : new URLSearchParams();
   const id = url.searchParams.get("id") || hashQuery.get("id") || match?.[2];
   if (!id || !/^\d+$/.test(id)) return null;
-  const isPlaylist =
-    url.searchParams.get("type") === "0" ||
-    hashQuery.get("type") === "0" ||
-    path.includes("playlist") ||
-    url.hash.toLowerCase().includes("playlist");
-  const type = isPlaylist ? "0" : "2";
+  const requestedType = url.searchParams.get("type") || hashQuery.get("type");
+  const routeTypes = {
+    playlist: "0",
+    album: "1",
+    song: "2",
+    program: "3",
+    dj: "4",
+    djradio: "4",
+  };
+  const type = /^[0-4]$/.test(requestedType || "")
+    ? requestedType
+    : routeTypes[match?.[1]] || "2";
   const embed = new URL("https://music.163.com/outchain/player");
   embed.searchParams.set("type", type);
   embed.searchParams.set("id", id);
