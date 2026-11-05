@@ -1,4 +1,4 @@
-import { listPublicMusicTracks } from "./supabase.js?v=20261104-1";
+import { listPublicMusicTracks } from "./supabase.js?v=20261105-2";
 
 const sidebar = document.querySelector(".home-sidebar");
 const footer = sidebar?.querySelector(".home-sidebar-footer");
@@ -256,7 +256,14 @@ function showTrack(index, { autoplay = false } = {}) {
     });
     audio.addEventListener("play", () => setButtonIcon(playPause, "pause", "暂停"));
     audio.addEventListener("pause", () => setButtonIcon(playPause, "play", "播放"));
-    audio.addEventListener("ended", () => showTrack(currentIndex + 1, { autoplay: true }));
+    audio.addEventListener("ended", () => {
+      if (currentIndex + 1 < tracks.length) {
+        showTrack(currentIndex + 1, { autoplay: true });
+        return;
+      }
+      setButtonIcon(playPause, "play", "播放");
+      status.textContent = "歌单播放完毕。";
+    });
     audio.addEventListener("error", () => {
       status.textContent = `音频无法播放，请检查文件路径：${track.title}`;
     }, { once: true });

@@ -662,7 +662,7 @@ footer a {
 
 .sidebar-music-local-player {
   align-items: stretch;
-  background: #fff;
+  background: #f7f7f7;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   color: #333;
@@ -809,6 +809,39 @@ footer a {
   display: block;
   height: 150px;
   width: 100%;
+}
+
+html[data-theme="dark"] .sidebar-music-local-player {
+  background: #202633;
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #e7eaf0;
+}
+
+html[data-theme="dark"] .sidebar-music-local-title {
+  color: #e7eaf0;
+}
+
+html[data-theme="dark"] .sidebar-music-progress {
+  accent-color: #c8b7ff;
+  color-scheme: dark;
+}
+
+html[data-theme="dark"] .sidebar-music-local-time,
+html[data-theme="dark"] .sidebar-music-local-actions {
+  color: #a3adbd;
+}
+
+html[data-theme="dark"] .sidebar-music-local-actions .sidebar-music-play {
+  color: #d7d0ff;
+}
+
+html[data-theme="dark"] .sidebar-music-local-actions .sidebar-music-play:hover:not(:disabled),
+html[data-theme="dark"] .sidebar-music-local-actions .sidebar-music-speed:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+html[data-theme="dark"] .sidebar-music-local-actions .sidebar-music-speed {
+  color: #d7d0ff;
 }
 
 .sidebar-music-transport {
