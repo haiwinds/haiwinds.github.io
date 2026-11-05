@@ -87,6 +87,10 @@ function requireConfiguration() {
   if (error) throw new Error(error);
 }
 
+function isMissingMusicSortOrder(error) {
+  return /sort_order.*(column|schema cache)|(?:column|schema cache).*sort_order/i.test(error.message);
+}
+
 async function request(path, { method = "GET", body, token, headers = {} } = {}) {
   requireConfiguration();
   const requestHeaders = {
@@ -487,7 +491,19 @@ export async function listPublicMusicTracks() {
     select: "id,title,source_type,source,created_at,sort_order",
     order: "sort_order.asc,id.asc",
   });
-  return request(`/rest/v1/music_tracks?${query}`);
+  try {
+    return await request(`/rest/v1/music_tracks?${query}`);
+  } catch (error) {
+    if (!isMissingMusicSortOrder(error)) {
+      throw error;
+    }
+
+    const legacyQuery = new URLSearchParams({
+      select: "id,title,source_type,source,created_at",
+      order: "created_at.asc,id.asc",
+    });
+    return request(`/rest/v1/music_tracks?${legacyQuery}`);
+  }
 }
 
 export async function listAdminMusicTracks(session) {
@@ -495,32 +511,62 @@ export async function listAdminMusicTracks(session) {
     select: "id,title,source_type,source,created_at,sort_order",
     order: "sort_order.asc,id.asc",
   });
-  return request(`/rest/v1/music_tracks?${query}`, {
-    token: session.access_token,
-  });
+  try {
+    return await request(`/rest/v1/music_tracks?${query}`, {
+      token: session.access_token,
+    });
+  } catch (error) {
+    if (!isMissingMusicSortOrder(error)) {
+      throw error;
+    }
+
+    const legacyQuery = new URLSearchParams({
+      select: "id,title,source_type,source,created_at",
+      order: "created_at.asc,id.asc",
+    });
+    const tracks = await request(`/rest/v1/music_tracks?${legacyQuery}`, {
+      token: session.access_token,
+    });
+    return tracks.map((track, index) => ({ ...track, sort_order: index }));
+  }
 }
 
 export async function addMusicTrack(session, { title, sourceType, source, sortOrder }) {
-  return request("/rest/v1/music_tracks", {
+  const body = {
+    title: title.trim(),
+    source_type: sourceType,
+    source: source.trim(),
+    created_by: session.user.id,
+    sort_order: sortOrder,
+  };
+  const options = {
     method: "POST",
-    body: {
-      title: title.trim(),
-      source_type: sourceType,
-      source: source.trim(),
-      created_by: session.user.id,
-      sort_order: sortOrder,
-    },
+    body,
     token: session.access_token,
     headers: { Prefer: "return=minimal" },
-  });
+  };
+  try {
+    return await request("/rest/v1/music_tracks", options);
+  } catch (error) {
+    if (!isMissingMusicSortOrder(error)) throw error;
+    delete body.sort_order;
+    return request("/rest/v1/music_tracks", options);
+  }
 }
 
 export async function reorderMusicTracks(session, trackIds) {
-  return request("/rest/v1/rpc/reorder_music_tracks", {
-    method: "POST",
-    body: { track_ids: trackIds },
-    token: session.access_token,
-  });
+  try {
+    return await request("/rest/v1/rpc/reorder_music_tracks", {
+      method: "POST",
+      body: { track_ids: trackIds },
+      token: session.access_token,
+    });
+  } catch (error) {
+    if (/reorder_music_tracks.*(not found|schema cache)|function .*reorder_music_tracks/i.test(error.message)) {
+      throw new Error("排序数据库结构尚未更新，请在 Supabase SQL Editor 执行 supabase/music-track-order.sql。");
+    }
+    throw error;
+  }
 }
 
 export async function deleteMusicTrack(session, trackId) {

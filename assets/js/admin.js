@@ -18,7 +18,7 @@ import {
   signOut,
   uploadImage,
   uploadMusicAudio,
-} from "./supabase.js?v=20261104-1";
+} from "./supabase.js?v=20261105-2";
 
 const loginPanel = document.querySelector("[data-login-panel]");
 const dashboard = document.querySelector("[data-dashboard]");
