@@ -444,7 +444,8 @@ main article img {
   margin: 0;
 }
 
-.post-detail-image {
+main article img.post-detail-image {
+  border-radius: 0;
   display: block;
   height: auto;
   margin: 0;
